@@ -228,17 +228,17 @@ button {
 }
 
 .brand-logo {
-    width: 86px;
-    height: 86px;
+    width: 140px;
+    height: 140px;
     object-fit: contain;
     border-radius: 22px;
     background: rgba(255, 255, 255, 0.8);
-    padding: 0.45rem;
+    padding: 0.6rem;
 }
 
 .brand-logo.small {
-    width: 64px;
-    height: 64px;
+    width: 80px;
+    height: 80px;
 }
 
 .eyebrow {
@@ -1866,8 +1866,8 @@ button {
 }
 
 .branding-logo-preview {
-    width: 120px;
-    height: 120px;
+    width: 160px;
+    height: 160px;
     object-fit: contain;
     border-radius: 12px;
     border: 2px dashed var(--border);
@@ -2301,53 +2301,176 @@ button {
    DARK MODE
    ══════════════════════════════════════════════ */
 [data-theme="dark"] {
-    --bg: #1a1a2e;
-    --bg-strong: #16213e;
-    --surface: rgba(30, 32, 50, 0.92);
-    --surface-strong: #232540;
-    --ink: #e8e6e3;
-    --muted: #9b97a0;
-    --accent-soft: rgba(15, 106, 93, 0.18);
-    --warning-soft: rgba(181, 74, 47, 0.15);
-    --line: rgba(255, 255, 255, 0.08);
-    --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    --bg: #121220;
+    --bg-strong: #0e1525;
+    --surface: rgba(28, 30, 48, 0.95);
+    --surface-strong: #1e2038;
+    --ink: #f0eeeb;
+    --muted: #b5b1ba;
+    --accent-soft: rgba(15, 106, 93, 0.22);
+    --warning-soft: rgba(181, 74, 47, 0.18);
+    --line: rgba(255, 255, 255, 0.1);
+    --shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
 }
 
 [data-theme="dark"] body {
     background:
-        radial-gradient(circle at top left, rgba(15, 106, 93, 0.12), transparent 22%),
-        radial-gradient(circle at bottom right, rgba(181, 74, 47, 0.1), transparent 28%),
-        linear-gradient(135deg, var(--bg), #1e1e34 45%, var(--bg-strong));
+        radial-gradient(circle at top left, rgba(15, 106, 93, 0.1), transparent 22%),
+        radial-gradient(circle at bottom right, rgba(181, 74, 47, 0.08), transparent 28%),
+        linear-gradient(135deg, var(--bg), #161628 45%, var(--bg-strong));
 }
 
 [data-theme="dark"] input,
 [data-theme="dark"] select {
-    background: rgba(30, 32, 50, 0.8);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(22, 24, 40, 0.9);
+    border-color: rgba(255, 255, 255, 0.12);
     color: var(--ink);
 }
 
 [data-theme="dark"] .dashboard-sidebar {
-    background: rgba(26, 26, 46, 0.95) !important;
+    background: rgba(18, 18, 32, 0.97) !important;
     border-color: rgba(255, 255, 255, 0.06);
 }
 
 [data-theme="dark"] .hero-panel {
-    background: rgba(26, 26, 46, 0.88);
+    background: rgba(18, 18, 32, 0.92);
 }
 
 [data-theme="dark"] .product-card,
 [data-theme="dark"] .metric-card,
 [data-theme="dark"] .flash-card,
 [data-theme="dark"] .checkout-panel {
-    background: var(--surface);
-    border-color: rgba(255, 255, 255, 0.06);
+    background: rgba(26, 28, 46, 0.95);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: var(--ink);
 }
 
 [data-theme="dark"] .checkout-panel {
-    background: rgba(26, 26, 46, 0.95);
+    background: rgba(18, 18, 32, 0.97);
 }
 
+/* ── Dark mode: Login ── */
+[data-theme="dark"] .login-card {
+    background: rgba(26, 28, 46, 0.96);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: var(--ink);
+}
+
+[data-theme="dark"] .login-card h1,
+[data-theme="dark"] .login-card strong {
+    color: #fff;
+}
+
+[data-theme="dark"] .login-card .hero-text,
+[data-theme="dark"] .login-card .eyebrow {
+    color: var(--muted);
+}
+
+[data-theme="dark"] .login-hint-grid .metric-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .login-hint-grid .metric-card span {
+    color: var(--muted);
+}
+
+[data-theme="dark"] .login-hint-grid .metric-card strong {
+    color: #fff;
+}
+
+[data-theme="dark"] .login-hint-grid .panel-note {
+    color: var(--muted);
+}
+
+/* ── Dark mode: Dashboard panels ── */
+[data-theme="dark"] .dashboard-panel {
+    color: var(--ink);
+}
+
+[data-theme="dark"] .dashboard-panel h2,
+[data-theme="dark"] .dashboard-sidebar h1 {
+    color: #fff;
+}
+
+[data-theme="dark"] .section-heading .eyebrow {
+    color: var(--accent);
+}
+
+[data-theme="dark"] .panel-note,
+[data-theme="dark"] .sidebar-note {
+    color: var(--muted);
+    opacity: 1;
+}
+
+/* ── Dark mode: Hero / POS ── */
+[data-theme="dark"] .hero-panel h1,
+[data-theme="dark"] .hero-panel strong {
+    color: #fff;
+}
+
+[data-theme="dark"] .hero-text {
+    color: var(--muted);
+}
+
+[data-theme="dark"] .system-pill {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--ink);
+}
+
+/* ── Dark mode: Cards & Metrics ── */
+[data-theme="dark"] .metric-card strong,
+[data-theme="dark"] .metric-card h3 {
+    color: #fff;
+}
+
+[data-theme="dark"] .metric-card span,
+[data-theme="dark"] .metric-card p {
+    color: var(--muted);
+}
+
+[data-theme="dark"] .product-card-name {
+    color: #fff;
+}
+
+[data-theme="dark"] .product-card-sku,
+[data-theme="dark"] .product-card-price,
+[data-theme="dark"] .stock-note {
+    color: var(--muted);
+}
+
+/* ── Dark mode: Tables ── */
+[data-theme="dark"] table th {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--muted);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] table td {
+    color: var(--ink);
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Dark mode: Buttons & Forms ── */
+[data-theme="dark"] .primary-button {
+    color: #fff;
+}
+
+[data-theme="dark"] .ghost-link {
+    border-color: rgba(255, 255, 255, 0.14);
+    color: var(--muted);
+}
+
+[data-theme="dark"] .ghost-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+[data-theme="dark"] label {
+    color: var(--ink);
+}
+
+/* ── Dark mode: Tiles & Nav ── */
 [data-theme="dark"] .category-tabs button {
     background: rgba(255, 255, 255, 0.06);
     color: var(--muted);
@@ -2361,15 +2484,12 @@ button {
 [data-theme="dark"] .product-tile,
 [data-theme="dark"] .variant-tile {
     background: var(--surface);
+    color: var(--ink);
 }
 
 [data-theme="dark"] .product-tile:hover,
 [data-theme="dark"] .variant-tile:hover {
     background: var(--surface-strong);
-}
-
-[data-theme="dark"] table th {
-    background: rgba(255, 255, 255, 0.03);
 }
 
 [data-theme="dark"] .admin-nav-link,
@@ -2379,49 +2499,117 @@ button {
 
 [data-theme="dark"] .admin-nav-link.active,
 [data-theme="dark"] .admin-nav .ghost-link:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--ink);
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
 }
 
+[data-theme="dark"] .side-launch-link {
+    color: var(--muted);
+}
+
+[data-theme="dark"] .side-launch-link:hover {
+    color: #fff;
+}
+
+/* ── Dark mode: Misc ── */
 [data-theme="dark"] .variant-sub-table {
     background: rgba(255, 255, 255, 0.03);
 }
 
-[data-theme="dark"] .sidebar-note {
-    color: var(--muted);
-    opacity: 0.7;
-}
-
 [data-theme="dark"] .status-chip {
-    background: rgba(255, 255, 255, 0.08);
-}
-
-[data-theme="dark"] .ghost-link {
-    border-color: rgba(255, 255, 255, 0.12);
-    color: var(--muted);
-}
-
-[data-theme="dark"] .ghost-link:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.1);
     color: var(--ink);
 }
 
-[data-theme="dark"] .branding-preset-option {
+[data-theme="dark"] .status-chip.active {
+    background: rgba(15, 106, 93, 0.2);
+    color: #5fe0c8;
+}
+
+[data-theme="dark"] .status-chip.upcoming {
+    background: rgba(181, 74, 47, 0.18);
+    color: #f0a070;
+}
+
+[data-theme="dark"] .status-chip.inactive,
+[data-theme="dark"] .status-chip.disabled {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--muted);
+}
+
+[data-theme="dark"] .flash-card {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .flash-card.success {
+    background: rgba(29, 122, 67, 0.18);
+    color: #6ee09a;
+}
+
+[data-theme="dark"] .flash-card.error {
+    background: rgba(181, 74, 47, 0.18);
+    color: #f0a070;
+}
+
+[data-theme="dark"] .tile-hint {
+    color: var(--muted);
+}
+
+[data-theme="dark"] .price-tag {
+    color: var(--ink);
+}
+
+[data-theme="dark"] .qty-button {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--ink);
     border-color: rgba(255, 255, 255, 0.1);
 }
 
+[data-theme="dark"] .qty-button:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="dark"] .cart-item {
+    color: var(--ink);
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .brand-logo {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* ── Dark mode: Branding form ── */
+[data-theme="dark"] .branding-preset-option {
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--ink);
+}
+
 [data-theme="dark"] .branding-preset-option:has(input:checked) {
-    background: rgba(15, 106, 93, 0.15);
+    background: rgba(15, 106, 93, 0.2);
+    border-color: var(--accent);
 }
 
 [data-theme="dark"] .branding-logo-preview {
     border-color: rgba(255, 255, 255, 0.12);
-    background: var(--bg);
+    background: rgba(255, 255, 255, 0.04);
 }
 
 [data-theme="dark"] .branding-upload-label {
     background: var(--surface);
     border-color: rgba(255, 255, 255, 0.1);
+    color: var(--ink);
+}
+
+[data-theme="dark"] .branding-custom-colors label {
+    color: var(--muted);
+}
+
+[data-theme="dark"] .table-shell {
+    color: var(--ink);
+}
+
+[data-theme="dark"] .inventory-flag {
+    color: #f0a070;
 }
 
 /* ── Dark Mode Toggle Button ── */
