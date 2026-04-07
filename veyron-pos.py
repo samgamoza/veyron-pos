@@ -15,9 +15,14 @@ from typing import Any
 
 from flask import Flask, flash, redirect, render_template, request, send_file, session, url_for
 from dotenv import load_dotenv
-from psycopg import connect as pg_connect
-from psycopg.rows import dict_row
-from psycopg.errors import IntegrityError as PostgresIntegrityError
+try:
+    from psycopg import connect as pg_connect
+    from psycopg.rows import dict_row
+    from psycopg.errors import IntegrityError as PostgresIntegrityError
+except ImportError:
+    pg_connect = None
+    dict_row = None
+    PostgresIntegrityError = None
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
