@@ -120,6 +120,29 @@ button {
     gap: 1rem;
 }
 
+.pin-field {
+    position: relative;
+    display: flex;
+}
+.pin-field input {
+    flex: 1;
+    padding-right: 2.8rem;
+}
+.pin-toggle {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0.25rem;
+    line-height: 1;
+    opacity: 0.6;
+}
+.pin-toggle:hover { opacity: 1; }
+
 .login-hint-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

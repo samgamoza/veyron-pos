@@ -32,7 +32,10 @@
                 </label>
                 <label>
                     PIN
-                    <input type="password" name="pin" placeholder="Enter PIN" required>
+                    <div class="pin-field">
+                        <input type="password" name="pin" id="pinInput" placeholder="Enter PIN" required>
+                        <button type="button" class="pin-toggle" onclick="let p=document.getElementById('pinInput');let isHidden=p.type==='password';p.type=isHidden?'text':'password';this.textContent=isHidden?'🙈':'👁'" title="Toggle visibility">👁</button>
+                    </div>
                 </label>
                 <button type="submit" class="primary-button">Sign in</button>
             </form>
