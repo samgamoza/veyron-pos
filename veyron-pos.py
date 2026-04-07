@@ -67,6 +67,26 @@ DEFAULT_BRANDS = [
     "Seasonal Test Kitchen",
 ]
 DEFAULT_UNITS = ["Slice", "Box", "Piece", "Cup", "Order", "Pack"]
+DEFAULT_UNITS_DATA = [
+    # (name, symbol, type, conversion_to_base)  base: g for weight, ml for volume, 1 for count
+    ("Kilogram", "kg", "weight", 1000),
+    ("Gram", "g", "weight", 1),
+    ("Pound", "lb", "weight", 453.592),
+    ("Ounce", "oz", "weight", 28.3495),
+    ("Liter", "L", "volume", 1000),
+    ("Milliliter", "ml", "volume", 1),
+    ("Cup", "cup", "volume", 240),
+    ("Tablespoon", "tbsp", "volume", 15),
+    ("Teaspoon", "tsp", "volume", 5),
+    ("Piece", "pcs", "count", 1),
+    ("Pack", "pack", "count", 1),
+    ("Box", "box", "count", 1),
+    ("Slice", "slice", "count", 1),
+    ("Order", "order", "count", 1),
+    ("Serving", "srv", "count", 1),
+    ("Dozen", "doz", "count", 12),
+    ("Tray", "tray", "count", 1),
+]
 ALLOWED_PRODUCT_STATUSES = {"active", "upcoming", "inactive"}
 ALLOWED_INVENTORY_REASONS = {
     "opening_balance",
@@ -616,6 +636,23 @@ def seed_lookup_table(connection, table_name: str, values: list[str]) -> None:
     )
 
 
+def seed_units_data(connection) -> None:
+    """Seed extended unit data (symbol, type, conversion) for measurement system."""
+    for name, symbol, utype, conversion in DEFAULT_UNITS_DATA:
+        if DATABASE_ENGINE == "postgres":
+            connection.execute(
+                "INSERT INTO units (name, symbol, type, conversion) VALUES (%s, %s, %s, %s) "
+                "ON CONFLICT (name) DO UPDATE SET symbol=EXCLUDED.symbol, type=EXCLUDED.type, conversion=EXCLUDED.conversion",
+                (name, symbol, utype, conversion),
+            )
+        else:
+            connection.execute(
+                "INSERT INTO units (name, symbol, type, conversion) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT(name) DO UPDATE SET symbol=excluded.symbol, type=excluded.type, conversion=excluded.conversion",
+                (name, symbol, utype, conversion),
+            )
+
+
 def fetch_lookup_ids(connection: sqlite3.Connection, table_name: str) -> dict[str, int]:
     return {row["name"]: row["id"] for row in connection.execute(f"SELECT id, name FROM {table_name}").fetchall()}
 
@@ -784,7 +821,10 @@ def init_db() -> None:
 
             CREATE TABLE IF NOT EXISTS units (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE
+                name TEXT NOT NULL UNIQUE,
+                symbol TEXT NOT NULL DEFAULT '',
+                type TEXT NOT NULL DEFAULT 'count',
+                conversion REAL NOT NULL DEFAULT 1
             );
 
             CREATE TABLE IF NOT EXISTS products (
@@ -961,6 +1001,10 @@ def init_db() -> None:
         ensure_column(connection, "sales", "original_sale_id", "INTEGER")
         ensure_column(connection, "sales", "cashier_user_id", "INTEGER")
 
+        ensure_column(connection, "units", "symbol", "TEXT NOT NULL DEFAULT ''")
+        ensure_column(connection, "units", "type", "TEXT NOT NULL DEFAULT 'count'")
+        ensure_column(connection, "units", "conversion", "REAL NOT NULL DEFAULT 1")
+
         for key, value in DEFAULT_APP_SETTINGS.items():
             connection.execute(
                 "INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING",
@@ -986,6 +1030,7 @@ def init_db() -> None:
         seed_lookup_table(connection, "categories", DEFAULT_CATEGORIES)
         seed_lookup_table(connection, "brands", DEFAULT_BRANDS)
         seed_lookup_table(connection, "units", DEFAULT_UNITS)
+        seed_units_data(connection)
         resequence_category_order(connection)
 
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
@@ -1083,6 +1128,10 @@ def fetch_lookup_rows(table_name: str) -> list[sqlite3.Row]:
             return connection.execute(
                 "SELECT id, name, sort_order FROM categories ORDER BY sort_order ASC, id ASC"
             ).fetchall()
+        if table_name == "units":
+            return connection.execute(
+                "SELECT id, name, symbol, type, conversion FROM units ORDER BY type, name"
+            ).fetchall()
         return connection.execute(f"SELECT id, name FROM {table_name} ORDER BY name").fetchall()
 
 
@@ -1108,6 +1157,7 @@ def fetch_admin_products() -> list[sqlite3.Row]:
                 COALESCE(c.name, 'Unassigned') AS category_name,
                 COALESCE(b.name, 'Unassigned') AS brand_name,
                 COALESCE(u.name, 'Unassigned') AS unit_name,
+                COALESCE(u.symbol, '') AS unit_symbol,
                 p.last_restocked,
                 (p.stock * p.cost) AS stock_cost_value,
                 (p.stock * p.price) AS stock_retail_value
@@ -1585,6 +1635,7 @@ def fetch_inventory_context() -> dict[str, object]:
         "sales_controls": fetch_sales_for_control(),
         "today_shift": today_shift,
         "recent_shifts": recent_shifts,
+        "units": fetch_lookup_rows("units"),
     }
 
 

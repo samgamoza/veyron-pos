@@ -89,8 +89,13 @@
                     </select>
                     <select name="unit_id" required>
                         <option value="">Select Unit</option>
-                        {% for unit in units %}
-                            <option value="{{ unit.id }}">{{ unit.name }}</option>
+                        {% for utype, ulabel in [('weight', 'Weight'), ('volume', 'Volume'), ('count', 'Count')] %}
+                            {% set group_units = units|selectattr('type', 'equalto', utype)|list %}
+                            {% if group_units %}
+                            <optgroup label="{{ ulabel }}">
+                                {% for unit in group_units %}<option value="{{ unit.id }}">{{ unit.name }} ({{ unit.symbol }})</option>{% endfor %}
+                            </optgroup>
+                            {% endif %}
                         {% endfor %}
                     </select>
                     <select name="status" required>
@@ -237,7 +242,14 @@
                         </select>
                         <select name="unit_id" id="edit-unit-id" required>
                             <option value="">Select Unit</option>
-                            {% for unit in units %}<option value="{{ unit.id }}">{{ unit.name }}</option>{% endfor %}
+                            {% for utype, ulabel in [('weight', 'Weight'), ('volume', 'Volume'), ('count', 'Count')] %}
+                                {% set group_units = units|selectattr('type', 'equalto', utype)|list %}
+                                {% if group_units %}
+                                <optgroup label="{{ ulabel }}">
+                                    {% for unit in group_units %}<option value="{{ unit.id }}">{{ unit.name }} ({{ unit.symbol }})</option>{% endfor %}
+                                </optgroup>
+                                {% endif %}
+                            {% endfor %}
                         </select>
                         <select name="status" id="edit-status" required>
                             <option value="active">Active</option>

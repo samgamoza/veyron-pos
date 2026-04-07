@@ -71,7 +71,7 @@
                 <script>
                     var _productData = [
                         {% for product in active_products %}
-                        { id: {{ product.id }}, name: "{{ product.name }}", stock: {{ product.stock }}, cost: {{ product.cost }}, price: {{ product.price }}, reorder: {{ product.reorder_level or 0 }} }{{ "," if not loop.last }}
+                        { id: {{ product.id }}, name: "{{ product.name }}", stock: {{ product.stock }}, cost: {{ product.cost }}, price: {{ product.price }}, reorder: {{ product.reorder_level or 0 }}, unit: "{{ product.unit_symbol or 'pcs' }}" }{{ "," if not loop.last }}
                         {% endfor %}
                     ];
                     var _totals = {
@@ -410,17 +410,29 @@
                             <h3>Ingredients</h3>
                             <div class="table-shell compact-table admin-table-wrap">
                                 <table class="table" id="wiz-ingredients-table">
-                                    <thead><tr><th>Ingredient</th><th>Cost / unit</th><th>Qty used</th><th>Line cost</th><th></th></tr></thead>
+                                    <thead><tr><th>Ingredient</th><th>Unit</th><th>Cost / unit</th><th>Qty used</th><th>Line cost</th><th></th></tr></thead>
                                     <tbody id="wiz-ingredients-body">
                                         <tr class="wiz-row">
-                                            <td><input type="text" class="wiz-input wiz-name" placeholder="e.g. Pork"></td>
+                                            <td><input type="text" class="wiz-input wiz-name" placeholder="e.g. Flour"></td>
+                                            <td>
+                                                <select class="wiz-input wiz-unit-select">
+                                                    {% for utype, ulabel in [('weight', 'Weight'), ('volume', 'Volume'), ('count', 'Count')] %}
+                                                        {% set group_units = units|selectattr('type', 'equalto', utype)|list %}
+                                                        {% if group_units %}
+                                                        <optgroup label="{{ ulabel }}">
+                                                            {% for unit in group_units %}<option value="{{ unit.symbol }}" data-conversion="{{ unit.conversion }}">{{ unit.symbol }}</option>{% endfor %}
+                                                        </optgroup>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </select>
+                                            </td>
                                             <td><input type="number" class="wiz-input wiz-unit-cost" min="0" step="0.01" placeholder="0.00"></td>
                                             <td><input type="number" class="wiz-input wiz-qty" min="0" step="0.01" placeholder="0"></td>
                                             <td class="wiz-line-cost">PHP 0.00</td>
                                             <td><button type="button" class="ghost-link small-action danger-action wiz-remove-row">✕</button></td>
                                         </tr>
                                     </tbody>
-                                    <tfoot><tr><td colspan="3" style="text-align:right;font-weight:600;">Total ingredients cost</td><td id="wiz-total-ingredients" style="font-weight:700;">PHP 0.00</td><td></td></tr></tfoot>
+                                    <tfoot><tr><td colspan="4" style="text-align:right;font-weight:600;">Total ingredients cost</td><td id="wiz-total-ingredients" style="font-weight:700;">PHP 0.00</td><td></td></tr></tfoot>
                                 </table>
                             </div>
                             <button type="button" class="ghost-link" id="wiz-add-row" style="margin-top:0.5rem;">+ Add ingredient</button>
