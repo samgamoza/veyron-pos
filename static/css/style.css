@@ -1501,6 +1501,133 @@ button {
     display: flex;
     gap: 0.5rem;
     padding: 0.5rem;
+
+/* ── Daily Shift Card ── */
+
+.shift-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 1.1rem 1.3rem;
+    margin-bottom: 1.5rem;
+}
+
+.shift-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.shift-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.shift-info strong {
+    font-size: 1rem;
+    color: var(--heading);
+}
+
+.shift-info p {
+    margin: 0.15rem 0 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.shift-stats {
+    font-size: 0.8rem !important;
+    color: var(--muted);
+    opacity: 0.85;
+}
+
+.shift-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-top: 4px;
+    flex-shrink: 0;
+    background: var(--border);
+}
+
+.shift-indicator.open {
+    background: #22c55e;
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+    animation: shift-pulse 2s ease-in-out infinite;
+}
+
+.shift-indicator.closed {
+    background: var(--muted);
+}
+
+@keyframes shift-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.shift-btn {
+    white-space: nowrap;
+    font-size: 0.88rem;
+    padding: 0.55rem 1.3rem;
+}
+
+.open-btn {
+    background: var(--accent);
+}
+
+.close-btn {
+    background: var(--warning);
+}
+
+.shift-close-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.shift-notes-input {
+    padding: 0.45rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    width: 220px;
+    background: var(--bg);
+}
+
+.shift-history {
+    margin-top: 1rem;
+    border-top: 1px solid var(--border);
+    padding-top: 0.75rem;
+}
+
+.shift-history summary {
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent);
+    padding: 0.3rem 0;
+}
+
+.shift-history .table-shell {
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 600px) {
+    .shift-status {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .shift-close-form {
+        width: 100%;
+    }
+    .shift-notes-input {
+        width: 100%;
+    }
+}
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;

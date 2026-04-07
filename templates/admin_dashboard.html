@@ -72,7 +72,7 @@
                 <form method="POST" action="{{ url_for('add_product') }}" class="admin-form-grid" enctype="multipart/form-data">
                     <input type="text" name="name" placeholder="Product Name" required>
                     <input type="number" step="0.01" min="0" name="price" placeholder="Selling Price" required>
-                    <input type="number" step="0.01" min="0" name="cost" placeholder="Unit Cost" required>
+                    <input type="number" step="0.01" min="0" name="cost" placeholder="Base Price" required>
                     <input type="number" min="0" name="stock" placeholder="Opening Stock" required>
                     <input type="number" min="0" name="reorder_level" placeholder="Reorder Level" required>
                     <select name="category_id" required>
@@ -225,7 +225,7 @@
                         </select>
                         <input type="text" name="name" id="edit-name" placeholder="Product Name" required>
                         <input type="number" step="0.01" min="0" name="price" id="edit-price" placeholder="Selling Price" required>
-                        <input type="number" step="0.01" min="0" name="cost" id="edit-cost" placeholder="Unit Cost" required>
+                        <input type="number" step="0.01" min="0" name="cost" id="edit-cost" placeholder="Base Price" required>
                         <input type="number" min="0" name="reorder_level" id="edit-reorder-level" placeholder="Reorder Level" required>
                         <select name="category_id" id="edit-category-id" required>
                             <option value="">Select Category</option>
@@ -270,7 +270,7 @@
                         <input type="text" name="variant_name" placeholder="Variant Name (e.g. Slice, Whole, Small)" required>
                         <input type="text" name="variant_sku_suffix" placeholder="SKU Suffix (e.g. -SL, -WH)">
                         <input type="number" step="0.01" min="0" name="variant_price" placeholder="Selling Price" required>
-                        <input type="number" step="0.01" min="0" name="variant_cost" placeholder="Unit Cost" required>
+                        <input type="number" step="0.01" min="0" name="variant_cost" placeholder="Base Price" required>
                         <input type="number" min="0" name="variant_stock" placeholder="Opening Stock" required>
                         <input type="number" min="0" name="variant_reorder_level" placeholder="Reorder Level" required>
                         <button class="primary-button admin-submit" type="submit">Add Variant</button>
@@ -301,7 +301,7 @@
                         <input type="text" name="variant_name" id="edit-variant-name" placeholder="Variant Name" required>
                         <input type="text" name="variant_sku_suffix" id="edit-variant-sku-suffix" placeholder="SKU Suffix">
                         <input type="number" step="0.01" min="0" name="variant_price" id="edit-variant-price" placeholder="Selling Price" required>
-                        <input type="number" step="0.01" min="0" name="variant_cost" id="edit-variant-cost" placeholder="Unit Cost" required>
+                        <input type="number" step="0.01" min="0" name="variant_cost" id="edit-variant-cost" placeholder="Base Price" required>
                         <input type="number" min="0" name="variant_reorder_level" id="edit-variant-reorder-level" placeholder="Reorder Level" required>
                         <select name="variant_is_active" id="edit-variant-is-active">
                             <option value="1">Active</option>

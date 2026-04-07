@@ -913,6 +913,34 @@ def init_db() -> None:
                 FOREIGN KEY (stock_count_id) REFERENCES stock_counts (id),
                 FOREIGN KEY (product_id) REFERENCES products (id)
             );
+
+            CREATE TABLE IF NOT EXISTS daily_inventory_shifts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                shift_date TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'open',
+                opened_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                closed_at TEXT,
+                opened_by INTEGER,
+                closed_by INTEGER,
+                opening_units INTEGER NOT NULL DEFAULT 0,
+                closing_units INTEGER,
+                units_sold INTEGER DEFAULT 0,
+                units_received INTEGER DEFAULT 0,
+                units_adjusted INTEGER DEFAULT 0,
+                notes TEXT NOT NULL DEFAULT '',
+                FOREIGN KEY (opened_by) REFERENCES users (id),
+                FOREIGN KEY (closed_by) REFERENCES users (id)
+            );
+
+            CREATE TABLE IF NOT EXISTS daily_shift_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                shift_id INTEGER NOT NULL,
+                product_id INTEGER NOT NULL,
+                opening_stock INTEGER NOT NULL,
+                closing_stock INTEGER,
+                FOREIGN KEY (shift_id) REFERENCES daily_inventory_shifts (id),
+                FOREIGN KEY (product_id) REFERENCES products (id)
+            );
             """
         )
 
@@ -1508,10 +1536,41 @@ def fetch_admin_context() -> dict[str, object]:
     }
 
 
+def fetch_today_shift() -> dict | None:
+    from datetime import date as _date
+
+    today = _date.today().isoformat()
+    with get_connection() as connection:
+        row = connection.execute(
+            """SELECT dis.*, u1.full_name AS opened_by_name, u2.full_name AS closed_by_name
+               FROM daily_inventory_shifts dis
+               LEFT JOIN users u1 ON dis.opened_by = u1.id
+               LEFT JOIN users u2 ON dis.closed_by = u2.id
+               WHERE dis.shift_date = ?""",
+            (today,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def fetch_recent_shifts(limit: int = 7) -> list[dict]:
+    with get_connection() as connection:
+        rows = connection.execute(
+            """SELECT dis.*, u1.full_name AS opened_by_name, u2.full_name AS closed_by_name
+               FROM daily_inventory_shifts dis
+               LEFT JOIN users u1 ON dis.opened_by = u1.id
+               LEFT JOIN users u2 ON dis.closed_by = u2.id
+               ORDER BY dis.shift_date DESC LIMIT ?""",
+            (limit,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def fetch_inventory_context() -> dict[str, object]:
     products = fetch_admin_products()
     active_products = [product for product in products if product["status"] == "active"]
     open_stock_count, stock_count_items = fetch_open_stock_count()
+    today_shift = fetch_today_shift()
+    recent_shifts = fetch_recent_shifts()
     return {
         "metrics": fetch_dashboard_metrics(),
         "reports": fetch_reports_context(),
@@ -1524,6 +1583,8 @@ def fetch_inventory_context() -> dict[str, object]:
         "open_stock_count": open_stock_count,
         "stock_count_items": stock_count_items,
         "sales_controls": fetch_sales_for_control(),
+        "today_shift": today_shift,
+        "recent_shifts": recent_shifts,
     }
 
 
@@ -2362,6 +2423,101 @@ def remove_variant():
             flash("Variant removed.", "success")
 
     return redirect_to_admin("products")
+
+
+@app.route("/admin/inventory/open-day", methods=["POST"])
+@login_required("owner", "admin")
+def open_inventory_day():
+    from datetime import date as _date
+
+    today = _date.today().isoformat()
+    with get_connection() as connection:
+        existing = connection.execute(
+            "SELECT id, status FROM daily_inventory_shifts WHERE shift_date = ?",
+            (today,),
+        ).fetchone()
+        if existing:
+            flash(f"Today's inventory shift is already {'open' if existing['status'] == 'open' else 'closed'}.", "error")
+            return redirect_to_inventory("stock-control")
+
+        total_units = connection.execute("SELECT COALESCE(SUM(stock), 0) AS total FROM products WHERE status = 'active'").fetchone()["total"]
+        shift = connection.execute(
+            "INSERT INTO daily_inventory_shifts (shift_date, status, opened_by, opening_units) VALUES (?, 'open', ?, ?) RETURNING id",
+            (today, session.get("user_id"), total_units),
+        ).fetchone()
+        shift_id = shift["id"]
+
+        products = connection.execute("SELECT id, stock FROM products WHERE status = 'active'").fetchall()
+        for p in products:
+            connection.execute(
+                "INSERT INTO daily_shift_snapshots (shift_id, product_id, opening_stock) VALUES (?, ?, ?)",
+                (shift_id, p["id"], p["stock"]),
+            )
+
+        log_audit(connection, "create", "daily_shift", shift_id, f"Opened inventory day for {today} with {total_units} units")
+
+    flash(f"Inventory day opened for {today} with {total_units} total units.", "success")
+    return redirect_to_inventory("stock-control")
+
+
+@app.route("/admin/inventory/close-day", methods=["POST"])
+@login_required("owner", "admin")
+def close_inventory_day():
+    shift_id_raw = request.form.get("shift_id", "").strip()
+    notes = request.form.get("closing_notes", "").strip()[:300]
+
+    try:
+        shift_id_int = int(shift_id_raw)
+    except (ValueError, TypeError):
+        flash("Invalid shift.", "error")
+        return redirect_to_inventory("stock-control")
+
+    with get_connection() as connection:
+        shift = connection.execute(
+            "SELECT id, shift_date, opening_units FROM daily_inventory_shifts WHERE id = ? AND status = 'open'",
+            (shift_id_int,),
+        ).fetchone()
+        if shift is None:
+            flash("No open shift found to close.", "error")
+            return redirect_to_inventory("stock-control")
+
+        closing_units = connection.execute("SELECT COALESCE(SUM(stock), 0) AS total FROM products WHERE status = 'active'").fetchone()["total"]
+
+        products = connection.execute("SELECT id, stock FROM products WHERE status = 'active'").fetchall()
+        for p in products:
+            connection.execute(
+                "UPDATE daily_shift_snapshots SET closing_stock = ? WHERE shift_id = ? AND product_id = ?",
+                (p["stock"], shift_id_int, p["id"]),
+            )
+
+        units_sold = connection.execute(
+            "SELECT COALESCE(SUM(si.quantity), 0) AS total FROM sale_items si JOIN sales s ON si.sale_id = s.id WHERE DATE(s.created_at) = ? AND s.status = 'completed'",
+            (shift["shift_date"],),
+        ).fetchone()["total"]
+
+        units_received = connection.execute(
+            "SELECT COALESCE(SUM(quantity_change), 0) AS total FROM stock_movements WHERE DATE(created_at) = ? AND quantity_change > 0 AND reason != 'sale'",
+            (shift["shift_date"],),
+        ).fetchone()["total"]
+
+        units_adjusted = connection.execute(
+            "SELECT COALESCE(SUM(quantity_change), 0) AS total FROM stock_movements WHERE DATE(created_at) = ? AND quantity_change < 0 AND reason != 'sale'",
+            (shift["shift_date"],),
+        ).fetchone()["total"]
+
+        connection.execute(
+            """UPDATE daily_inventory_shifts
+               SET status = 'closed', closed_at = CURRENT_TIMESTAMP, closed_by = ?,
+                   closing_units = ?, units_sold = ?, units_received = ?, units_adjusted = ?, notes = ?
+               WHERE id = ?""",
+            (session.get("user_id"), closing_units, units_sold, units_received, units_adjusted, notes, shift_id_int),
+        )
+
+        log_audit(connection, "update", "daily_shift", shift_id_int,
+                  f"Closed inventory day for {shift['shift_date']}: opening={shift['opening_units']}, closing={closing_units}, sold={units_sold}")
+
+    flash(f"Inventory day closed. Opening: {shift['opening_units']} → Closing: {closing_units} units.", "success")
+    return redirect_to_inventory("stock-control")
 
 
 @app.route("/admin/inventory/adjust", methods=["POST"])

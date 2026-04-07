@@ -57,6 +57,76 @@
                     <article class="inventory-summary-card"><span>Upcoming items</span><strong>{{ metrics.upcoming_count }}</strong></article>
                     <article class="inventory-summary-card"><span>Tracked products</span><strong>{{ metrics.item_count }}</strong></article>
                 </div>
+
+                {# ── Daily Shift Card ── #}
+                <div class="shift-card">
+                    {% if today_shift is none %}
+                        <div class="shift-status shift-none">
+                            <div class="shift-info">
+                                <span class="shift-indicator"></span>
+                                <div>
+                                    <strong>No shift open today</strong>
+                                    <p>Open the day to start tracking inventory movements.</p>
+                                </div>
+                            </div>
+                            <form method="POST" action="{{ url_for('open_inventory_day') }}">
+                                <button type="submit" class="primary-button shift-btn open-btn">Open Day</button>
+                            </form>
+                        </div>
+                    {% elif today_shift.status == 'open' %}
+                        <div class="shift-status shift-open">
+                            <div class="shift-info">
+                                <span class="shift-indicator open"></span>
+                                <div>
+                                    <strong>Day is open</strong>
+                                    <p>Opened {{ today_shift.opened_at[:16] }} by {{ today_shift.opened_by_name or 'Unknown' }} · <strong>{{ today_shift.opening_units }}</strong> opening units</p>
+                                </div>
+                            </div>
+                            <form method="POST" action="{{ url_for('close_inventory_day') }}" class="shift-close-form" onsubmit="return confirm('Close today\'s inventory shift? This will snapshot all current stock levels.')">
+                                <input type="hidden" name="shift_id" value="{{ today_shift.id }}">
+                                <input type="text" name="closing_notes" placeholder="Closing notes (optional)" class="shift-notes-input" maxlength="300">
+                                <button type="submit" class="primary-button shift-btn close-btn">Close Day</button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <div class="shift-status shift-closed">
+                            <div class="shift-info">
+                                <span class="shift-indicator closed"></span>
+                                <div>
+                                    <strong>Day closed</strong>
+                                    <p>{{ today_shift.opened_at[:16] }} → {{ today_shift.closed_at[:16] }} · Opening: <strong>{{ today_shift.opening_units }}</strong> → Closing: <strong>{{ today_shift.closing_units }}</strong></p>
+                                    <p class="shift-stats">Sold: {{ today_shift.units_sold }} · Received: {{ today_shift.units_received }} · Adjusted: {{ today_shift.units_adjusted }}{% if today_shift.notes %} · {{ today_shift.notes }}{% endif %}</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if recent_shifts|length > 0 %}
+                        <details class="shift-history">
+                            <summary>Recent shifts ({{ recent_shifts|length }})</summary>
+                            <div class="table-shell compact-table admin-table-wrap">
+                                <table class="table">
+                                    <thead><tr><th>Date</th><th>Opened By</th><th>Open</th><th>Close</th><th>Sold</th><th>Received</th><th>Adjusted</th><th>Status</th></tr></thead>
+                                    <tbody>
+                                        {% for shift in recent_shifts %}
+                                            <tr>
+                                                <td>{{ shift.shift_date }}</td>
+                                                <td>{{ shift.opened_by_name or '—' }}</td>
+                                                <td>{{ shift.opening_units }}</td>
+                                                <td>{{ shift.closing_units or '—' }}</td>
+                                                <td>{{ shift.units_sold or '—' }}</td>
+                                                <td>{{ shift.units_received or '—' }}</td>
+                                                <td>{{ shift.units_adjusted or '—' }}</td>
+                                                <td><span class="stock-badge {% if shift.status == 'open' %}stock-low{% else %}stock-ok{% endif %}">{{ shift.status|title }}</span></td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </details>
+                    {% endif %}
+                </div>
+
                 <div class="inventory-workbench">
                     <form method="POST" action="{{ url_for('adjust_inventory') }}" class="inventory-adjust-form" id="adjustForm">
                         <p class="eyebrow">Stock adjustment</p>
