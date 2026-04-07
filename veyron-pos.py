@@ -2904,6 +2904,81 @@ def complete_stock_count():
     return redirect_to_inventory("stock-counts")
 
 
+@app.route("/inventory/stock-counts/report")
+@login_required("owner", "admin")
+def stock_count_report_api():
+    from flask import jsonify
+
+    period = request.args.get("period", "daily")
+    if period == "weekly":
+        group_fmt = "%Y-%W"
+    elif period == "monthly":
+        group_fmt = "%Y-%m"
+    else:
+        group_fmt = "%Y-%m-%d"
+
+    with get_connection() as connection:
+        rows = connection.execute(
+            f"""
+            SELECT
+                strftime('{group_fmt}', sc.completed_at) AS period,
+                p.name AS product_name,
+                SUM(sci.system_stock) AS opening,
+                SUM(CASE WHEN sci.variance > 0 THEN sci.variance ELSE 0 END) AS stock_in,
+                SUM(CASE WHEN sci.variance < 0 THEN ABS(sci.variance) ELSE 0 END) AS stock_out,
+                SUM(sci.system_stock) AS closing_system,
+                SUM(sci.counted_stock) AS physical_count,
+                SUM(sci.variance) AS variance
+            FROM stock_count_items sci
+            JOIN stock_counts sc ON sc.id = sci.stock_count_id
+            JOIN products p ON p.id = sci.product_id
+            WHERE sc.status = 'completed' AND sc.completed_at IS NOT NULL
+            GROUP BY strftime('{group_fmt}', sc.completed_at), sci.product_id
+            ORDER BY period DESC, p.name ASC
+            """,
+        ).fetchall()
+
+        summary = connection.execute(
+            f"""
+            SELECT
+                COUNT(DISTINCT sc.id) AS total_counts,
+                COALESCE(SUM(sci.system_stock), 0) AS total_opening,
+                COALESCE(SUM(sci.counted_stock), 0) AS total_physical,
+                COALESCE(SUM(sci.variance), 0) AS total_variance,
+                COALESCE(SUM(CASE WHEN sci.variance > 0 THEN sci.variance ELSE 0 END), 0) AS positive_variance,
+                COALESCE(SUM(CASE WHEN sci.variance < 0 THEN ABS(sci.variance) ELSE 0 END), 0) AS negative_variance
+            FROM stock_count_items sci
+            JOIN stock_counts sc ON sc.id = sci.stock_count_id
+            WHERE sc.status = 'completed' AND sc.completed_at IS NOT NULL
+                AND strftime('{group_fmt}', sc.completed_at) = strftime('{group_fmt}', 'now')
+            """,
+        ).fetchone()
+
+    return jsonify({
+        "rows": [
+            {
+                "period": row["period"],
+                "product": row["product_name"],
+                "opening": row["opening"],
+                "stock_in": row["stock_in"],
+                "stock_out": row["stock_out"],
+                "closing_system": row["closing_system"],
+                "physical_count": row["physical_count"],
+                "variance": row["variance"],
+            }
+            for row in rows
+        ],
+        "summary": {
+            "total_counts": summary["total_counts"],
+            "total_opening": summary["total_opening"],
+            "total_physical": summary["total_physical"],
+            "total_variance": summary["total_variance"],
+            "positive_variance": summary["positive_variance"],
+            "negative_variance": summary["negative_variance"],
+        },
+    })
+
+
 @app.route("/inventory/sales/void", methods=["POST"])
 @login_required("owner", "admin")
 def void_sale():

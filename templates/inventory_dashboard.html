@@ -319,6 +319,7 @@
                 <div class="section-heading"><div><p class="eyebrow">Stock Count</p><h2>Physical count and variance</h2></div>
                     <form method="POST" action="{{ url_for('create_stock_count') }}"><input type="hidden" name="title" value="Cycle Count"><button type="submit" class="primary-button">Start stock count</button></form>
                 </div>
+
                 {% if open_stock_count %}
                     <article class="dashboard-subpanel">
                         <p class="eyebrow">Open count</p>
@@ -345,6 +346,45 @@
                 {% else %}
                     <article class="dashboard-subpanel"><p class="panel-note">No open stock count. Start one before doing a physical count and variance reconciliation.</p></article>
                 {% endif %}
+
+                {# ── Stock Count Reports ── #}
+                <article class="dashboard-subpanel sc-report-panel">
+                    <div class="sc-report-header">
+                        <div><p class="eyebrow">Reconciliation Reports</p><h3>Stock count history</h3></div>
+                        <div class="sc-period-tabs">
+                            <button type="button" class="sc-period-btn active" data-period="daily">Daily</button>
+                            <button type="button" class="sc-period-btn" data-period="weekly">Weekly</button>
+                            <button type="button" class="sc-period-btn" data-period="monthly">Monthly</button>
+                        </div>
+                    </div>
+
+                    <div class="sc-summary-cards">
+                        <div class="sc-card"><span class="sc-card-label">Counts completed</span><strong class="sc-card-value" id="sc-total-counts">—</strong></div>
+                        <div class="sc-card"><span class="sc-card-label">System total</span><strong class="sc-card-value" id="sc-total-opening">—</strong></div>
+                        <div class="sc-card"><span class="sc-card-label">Physical total</span><strong class="sc-card-value" id="sc-total-physical">—</strong></div>
+                        <div class="sc-card"><span class="sc-card-label">Net variance</span><strong class="sc-card-value" id="sc-total-variance">—</strong></div>
+                    </div>
+
+                    <div class="table-shell compact-table admin-table-wrap">
+                        <table class="table" id="sc-report-table">
+                            <thead>
+                                <tr>
+                                    <th>Period</th>
+                                    <th>Product</th>
+                                    <th>Opening</th>
+                                    <th>In (+)</th>
+                                    <th>Out (−)</th>
+                                    <th>System</th>
+                                    <th>Actual</th>
+                                    <th>Variance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sc-report-body">
+                                <tr><td colspan="8" class="panel-note">Loading report…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
             </section>
 
             <section class="dashboard-panel admin-section-card" id="sales-controls" data-inventory-section hidden>
@@ -649,6 +689,64 @@
                 }
             });
         });
+
+        /* ── Stock Count Reports ── */
+        (function() {
+            var periodBtns = document.querySelectorAll('.sc-period-btn');
+            var reportBody = document.getElementById('sc-report-body');
+            if (!reportBody) return;
+
+            function loadReport(period) {
+                reportBody.innerHTML = '<tr><td colspan="8" class="panel-note">Loading…</td></tr>';
+                fetch('/inventory/stock-counts/report?period=' + period)
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        /* summary cards */
+                        var s = data.summary;
+                        document.getElementById('sc-total-counts').textContent = s.total_counts;
+                        document.getElementById('sc-total-opening').textContent = s.total_opening;
+                        document.getElementById('sc-total-physical').textContent = s.total_physical;
+                        var varEl = document.getElementById('sc-total-variance');
+                        varEl.textContent = (s.total_variance > 0 ? '+' : '') + s.total_variance;
+                        varEl.className = 'sc-card-value ' + (s.total_variance > 0 ? 'sc-positive' : s.total_variance < 0 ? 'sc-negative' : '');
+
+                        /* table rows */
+                        if (data.rows.length === 0) {
+                            reportBody.innerHTML = '<tr><td colspan="8" class="panel-note">No completed stock counts yet. Start a count above to begin tracking.</td></tr>';
+                            return;
+                        }
+                        var html = '';
+                        data.rows.forEach(function(r) {
+                            var vClass = r.variance > 0 ? 'sc-positive' : r.variance < 0 ? 'sc-negative' : 'sc-neutral';
+                            var vPrefix = r.variance > 0 ? '+' : '';
+                            html += '<tr>'
+                                + '<td>' + r.period + '</td>'
+                                + '<td>' + r.product + '</td>'
+                                + '<td>' + r.opening + '</td>'
+                                + '<td class="sc-positive">' + (r.stock_in > 0 ? '+' + r.stock_in : '0') + '</td>'
+                                + '<td class="sc-negative">' + (r.stock_out > 0 ? '−' + r.stock_out : '0') + '</td>'
+                                + '<td>' + r.closing_system + '</td>'
+                                + '<td>' + r.physical_count + '</td>'
+                                + '<td class="' + vClass + '">' + vPrefix + r.variance + '</td>'
+                                + '</tr>';
+                        });
+                        reportBody.innerHTML = html;
+                    })
+                    .catch(function() {
+                        reportBody.innerHTML = '<tr><td colspan="8" class="panel-note">Failed to load report.</td></tr>';
+                    });
+            }
+
+            periodBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    periodBtns.forEach(function(b) { b.classList.remove('active'); });
+                    btn.classList.add('active');
+                    loadReport(btn.dataset.period);
+                });
+            });
+
+            loadReport('daily');
+        })();
 
         /* ── Pricing Wizard ── */
         (function() {
