@@ -87,7 +87,7 @@ DEFAULT_UNITS_DATA = [
     ("Dozen", "doz", "count", 12),
     ("Tray", "tray", "count", 1),
 ]
-ALLOWED_PRODUCT_STATUSES = {"active", "upcoming", "inactive"}
+ALLOWED_PRODUCT_STATUSES = {"active", "upcoming", "inactive", "disabled", "out_of_stock"}
 ALLOWED_INVENTORY_REASONS = {
     "opening_balance",
     "restock",
@@ -115,6 +115,10 @@ DEFAULT_APP_SETTINGS = {
     "alert_low_stock_email": "1",
     "alert_void_refund_email": "1",
     "alert_variance_email": "1",
+    "brand_primary_color": "#0f6a5d",
+    "brand_accent_color": "#b54a2f",
+    "brand_theme_mode": "warm",
+    "brand_logo_path": "",
 }
 DEFAULT_USERS = [
     {"full_name": "Veyron Owner", "username": "owner", "role": "owner", "pin": "owner123"},
@@ -201,17 +205,24 @@ app.jinja_env.globals["get_product_image_url"] = lambda img, cat=None: get_produ
 
 
 def get_logo_path() -> str:
+    custom = get_setting("brand_logo_path", "")
+    if custom and (BASE_DIR / "static" / custom).exists():
+        return custom
     return "public/logo.png" if PUBLIC_LOGO.exists() else FALLBACK_LOGO
 
 
 @app.context_processor
 def inject_template_globals() -> dict[str, object]:
+    settings = fetch_app_settings()
     return {
         "business_name": BUSINESS_NAME,
         "currency_code": CURRENCY_CODE,
         "logo_path": get_logo_path(),
         "vat_rate": VAT_RATE,
         "current_user": get_current_user(),
+        "brand_primary": settings.get("brand_primary_color", "#0f6a5d"),
+        "brand_accent": settings.get("brand_accent_color", "#b54a2f"),
+        "brand_theme": settings.get("brand_theme_mode", "warm"),
     }
 
 
@@ -1080,7 +1091,7 @@ def fetch_pos_products() -> list[sqlite3.Row]:
             FROM products p
             LEFT JOIN categories c ON c.id = p.category_id
             LEFT JOIN units u ON u.id = p.unit_id
-            WHERE p.status = 'active'
+            WHERE p.status IN ('active', 'out_of_stock')
             ORDER BY c.sort_order ASC, c.id ASC, p.sort_order ASC, p.id ASC
             """
         ).fetchall()
@@ -3115,6 +3126,63 @@ def save_settings():
             )
         log_audit(connection, "update", "settings", None, "Hardware and receipt settings updated")
     flash("Settings saved.", "success")
+    return redirect(url_for("owner_dashboard"))
+
+
+BRAND_LOGO_DIR = BASE_DIR / "static" / "uploads" / "branding"
+
+THEME_PRESETS = {
+    "warm": {"primary": "#0f6a5d", "accent": "#b54a2f"},
+    "classic": {"primary": "#2c5282", "accent": "#c05621"},
+    "dark": {"primary": "#2d3748", "accent": "#ed8936"},
+    "rose": {"primary": "#9b2c2c", "accent": "#d69e2e"},
+    "ocean": {"primary": "#2b6cb0", "accent": "#38a169"},
+}
+
+
+@app.route("/owner/branding/save", methods=["POST"])
+@login_required("owner")
+def save_branding():
+    import re
+
+    primary = request.form.get("brand_primary_color", "#0f6a5d").strip()
+    accent = request.form.get("brand_accent_color", "#b54a2f").strip()
+    theme = request.form.get("brand_theme_mode", "warm").strip()
+
+    hex_re = re.compile(r"^#[0-9a-fA-F]{6}$")
+    if not hex_re.match(primary):
+        primary = "#0f6a5d"
+    if not hex_re.match(accent):
+        accent = "#b54a2f"
+    if theme not in THEME_PRESETS and theme != "custom":
+        theme = "warm"
+
+    branding = {
+        "brand_primary_color": primary,
+        "brand_accent_color": accent,
+        "brand_theme_mode": theme,
+    }
+
+    logo_file = request.files.get("brand_logo")
+    if logo_file and logo_file.filename:
+        from werkzeug.utils import secure_filename
+
+        filename = secure_filename(logo_file.filename)
+        ext = Path(filename).suffix.lower()
+        if ext in ALLOWED_IMAGE_EXTENSIONS:
+            BRAND_LOGO_DIR.mkdir(parents=True, exist_ok=True)
+            save_path = BRAND_LOGO_DIR / f"logo{ext}"
+            logo_file.save(save_path)
+            branding["brand_logo_path"] = f"uploads/branding/logo{ext}"
+
+    with get_connection() as connection:
+        for key, value in branding.items():
+            connection.execute(
+                "INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                (key, value),
+            )
+        log_audit(connection, "update", "branding", None, f"Branding updated: theme={theme}")
+    flash("Branding updated.", "success")
     return redirect(url_for("owner_dashboard"))
 
 

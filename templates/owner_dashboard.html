@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ business_name }} Owner Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>:root{--accent:{{ brand_primary }};--accent-strong:{{ brand_primary }};--warning:{{ brand_accent }};}</style>
 </head>
 <body class="admin-body">
     <main class="dashboard-shell">
@@ -17,6 +18,7 @@
                 <a href="#alerts" class="ghost-link">Alerts</a>
                 <a href="#backups" class="ghost-link">Backups</a>
                 <a href="#settings" class="ghost-link">Hardware Settings</a>
+                <a href="#branding" class="ghost-link">Branding</a>
                 <a href="#audit" class="ghost-link">Audit Trail</a>
             </nav>
             <div class="side-launch-links">
@@ -216,6 +218,113 @@
                     </label>
                     <button type="submit" class="primary-button">Save settings</button>
                 </form>
+            </section>
+
+            <section class="dashboard-panel" id="branding">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Appearance</p>
+                        <h2>Branding &amp; Theme</h2>
+                    </div>
+                </div>
+                <form method="post" action="{{ url_for('save_branding') }}" enctype="multipart/form-data" class="branding-form">
+                    <div class="branding-grid">
+                        <div class="branding-logo-section">
+                            <p class="eyebrow">Logo</p>
+                            <div class="branding-logo-preview">
+                                <img src="{{ url_for('static', filename=logo_path) }}" alt="Current logo" id="branding-logo-img">
+                            </div>
+                            <label class="branding-upload-label">
+                                <span class="ghost-link">Upload new logo</span>
+                                <input type="file" name="brand_logo" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" hidden id="branding-logo-input">
+                            </label>
+                            <p class="sidebar-note">PNG, JPG, SVG or WebP. Appears on all pages and receipts.</p>
+                        </div>
+                        <div class="branding-color-section">
+                            <p class="eyebrow">Theme Preset</p>
+                            <div class="branding-presets">
+                                <label class="branding-preset-option">
+                                    <input type="radio" name="brand_theme_mode" value="warm" {% if settings.brand_theme_mode == 'warm' or not settings.brand_theme_mode %}checked{% endif %}>
+                                    <span class="branding-swatch" style="background: linear-gradient(135deg, #0f6a5d, #b54a2f);"></span>
+                                    <span>Warm Bakery</span>
+                                </label>
+                                <label class="branding-preset-option">
+                                    <input type="radio" name="brand_theme_mode" value="classic" {% if settings.brand_theme_mode == 'classic' %}checked{% endif %}>
+                                    <span class="branding-swatch" style="background: linear-gradient(135deg, #2c5282, #c05621);"></span>
+                                    <span>Classic</span>
+                                </label>
+                                <label class="branding-preset-option">
+                                    <input type="radio" name="brand_theme_mode" value="dark" {% if settings.brand_theme_mode == 'dark' %}checked{% endif %}>
+                                    <span class="branding-swatch" style="background: linear-gradient(135deg, #2d3748, #ed8936);"></span>
+                                    <span>Dark Mode</span>
+                                </label>
+                                <label class="branding-preset-option">
+                                    <input type="radio" name="brand_theme_mode" value="rose" {% if settings.brand_theme_mode == 'rose' %}checked{% endif %}>
+                                    <span class="branding-swatch" style="background: linear-gradient(135deg, #9b2c2c, #d69e2e);"></span>
+                                    <span>Rose</span>
+                                </label>
+                                <label class="branding-preset-option">
+                                    <input type="radio" name="brand_theme_mode" value="ocean" {% if settings.brand_theme_mode == 'ocean' %}checked{% endif %}>
+                                    <span class="branding-swatch" style="background: linear-gradient(135deg, #2b6cb0, #38a169);"></span>
+                                    <span>Ocean</span>
+                                </label>
+                                <label class="branding-preset-option">
+                                    <input type="radio" name="brand_theme_mode" value="custom" {% if settings.brand_theme_mode == 'custom' %}checked{% endif %}>
+                                    <span class="branding-swatch" id="custom-swatch" style="background: linear-gradient(135deg, {{ settings.brand_primary_color or '#0f6a5d' }}, {{ settings.brand_accent_color or '#b54a2f' }});"></span>
+                                    <span>Custom</span>
+                                </label>
+                            </div>
+                            <div class="branding-custom-colors" id="custom-color-row">
+                                <label>
+                                    Primary
+                                    <input type="color" name="brand_primary_color" value="{{ settings.brand_primary_color or '#0f6a5d' }}" id="brand-primary-input">
+                                </label>
+                                <label>
+                                    Accent
+                                    <input type="color" name="brand_accent_color" value="{{ settings.brand_accent_color or '#b54a2f' }}" id="brand-accent-input">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="primary-button">Save branding</button>
+                </form>
+                <script>
+                    (function() {
+                        var logoInput = document.getElementById('branding-logo-input');
+                        var logoImg = document.getElementById('branding-logo-img');
+                        if (logoInput) logoInput.addEventListener('change', function() {
+                            if (this.files && this.files[0]) {
+                                var reader = new FileReader();
+                                reader.onload = function(e) { logoImg.src = e.target.result; };
+                                reader.readAsDataURL(this.files[0]);
+                            }
+                        });
+                        var presets = { warm: ['#0f6a5d','#b54a2f'], classic: ['#2c5282','#c05621'], dark: ['#2d3748','#ed8936'], rose: ['#9b2c2c','#d69e2e'], ocean: ['#2b6cb0','#38a169'] };
+                        var radios = document.querySelectorAll('input[name="brand_theme_mode"]');
+                        var pInput = document.getElementById('brand-primary-input');
+                        var aInput = document.getElementById('brand-accent-input');
+                        var customRow = document.getElementById('custom-color-row');
+                        var customSwatch = document.getElementById('custom-swatch');
+                        radios.forEach(function(r) {
+                            r.addEventListener('change', function() {
+                                if (presets[this.value]) {
+                                    pInput.value = presets[this.value][0];
+                                    aInput.value = presets[this.value][1];
+                                    customRow.style.display = 'none';
+                                } else {
+                                    customRow.style.display = 'flex';
+                                }
+                            });
+                        });
+                        function syncCustom() {
+                            customSwatch.style.background = 'linear-gradient(135deg, ' + pInput.value + ', ' + aInput.value + ')';
+                        }
+                        pInput.addEventListener('input', syncCustom);
+                        aInput.addEventListener('input', syncCustom);
+                        var cur = document.querySelector('input[name="brand_theme_mode"]:checked');
+                        if (cur && cur.value !== 'custom') customRow.style.display = 'none';
+                    })();
+                </script>
             </section>
 
             <section class="dashboard-panel" id="audit">

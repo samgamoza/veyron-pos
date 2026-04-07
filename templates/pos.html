@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ business_name }} POS</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>:root{--accent:{{ brand_primary }};--accent-strong:{{ brand_primary }};--warning:{{ brand_accent }};}</style>
 </head>
 <body class="aurora-body">
     <main class="app-shell pos-shell">
@@ -82,7 +83,7 @@
                             {% for product in category.products %}
                                 {% set product_variants = variants_map.get(product.id, []) %}
                                 {% set img_url = get_product_image_url(product.image_path, product.category_name) %}
-                                <article class="product-card cashier-product-card {% if product.stock == 0 and not product_variants %}sold-out{% elif product.stock <= product.reorder_level and not product_variants %}low-stock{% endif %}" data-category="{{ product.category_name }}">
+                                <article class="product-card cashier-product-card {% if product.status == 'out_of_stock' %}out-of-stock-status{% elif product.stock == 0 and not product_variants %}sold-out{% elif product.stock <= product.reorder_level and not product_variants %}low-stock{% endif %}" data-category="{{ product.category_name }}">
                                     {% if product_variants %}
                                         <div class="product-card-image">
                                             <img src="{{ url_for('static', filename=img_url) }}" alt="{{ product.name }}" loading="lazy">
@@ -105,20 +106,20 @@
                                                         data-variant-name="{{ variant.name }}"
                                                         data-variant-price="{{ variant.price }}"
                                                         data-variant-stock="{{ variant.stock }}"
-                                                        {% if variant.stock == 0 %}disabled{% endif %}
+                                                        {% if product.status == 'out_of_stock' or variant.stock == 0 %}disabled{% endif %}
                                                     >
                                                         <span>{{ variant.name }}</span>
                                                         <span class="price-tag">{{ variant.price|php }}</span>
-                                                        <span class="tile-hint">{% if variant.stock == 0 %}Sold out{% else %}{{ variant.stock }} on hand{% endif %}</span>
+                                                        <span class="tile-hint">{% if product.status == 'out_of_stock' %}Out of Stock{% elif variant.stock == 0 %}Sold out{% else %}{{ variant.stock }} on hand{% endif %}</span>
                                                     </button>
 
                                                     <div class="tile-controls variant-controls">
-                                                        <button type="button" class="qty-button" data-action="decrease" data-product-id="{{ product.id }}" data-variant-id="{{ variant.id }}" {% if variant.stock == 0 %}disabled{% endif %}>−</button>
+                                                        <button type="button" class="qty-button" data-action="decrease" data-product-id="{{ product.id }}" data-variant-id="{{ variant.id }}" {% if product.status == 'out_of_stock' or variant.stock == 0 %}disabled{% endif %}>−</button>
                                                         <div class="qty-display-shell">
                                                             <span class="qty-label">Qty</span>
                                                             <strong class="qty-display" data-qty-display="v{{ variant.id }}">0</strong>
                                                         </div>
-                                                        <button type="button" class="qty-button" data-action="increase" data-product-id="{{ product.id }}" data-variant-id="{{ variant.id }}" {% if variant.stock == 0 %}disabled{% endif %}>+</button>
+                                                        <button type="button" class="qty-button" data-action="increase" data-product-id="{{ product.id }}" data-variant-id="{{ variant.id }}" {% if product.status == 'out_of_stock' or variant.stock == 0 %}disabled{% endif %}>+</button>
                                                     </div>
 
                                                     <input type="hidden" name="product_id" value="{{ product.id }}">
@@ -135,7 +136,7 @@
                                             data-product-name="{{ product.name }}"
                                             data-product-price="{{ product.price }}"
                                             data-product-stock="{{ product.stock }}"
-                                            {% if product.stock == 0 %}disabled{% endif %}
+                                            {% if product.status == 'out_of_stock' or product.stock == 0 %}disabled{% endif %}
                                         >
                                             <div class="product-card-image">
                                                 <img src="{{ url_for('static', filename=img_url) }}" alt="{{ product.name }}" loading="lazy">
@@ -145,17 +146,17 @@
                                                 <strong class="product-card-name">{{ product.name }}</strong>
                                                 <span class="product-card-sku">{{ product.sku }}</span>
                                                 <span class="product-card-price">{{ product.price|php }}</span>
-                                                <span class="tile-hint">{% if product.stock == 0 %}Sold out{% else %}Tap to add{% endif %}</span>
+                                                <span class="tile-hint">{% if product.status == 'out_of_stock' %}Out of Stock{% elif product.stock == 0 %}Sold out{% else %}Tap to add{% endif %}</span>
                                             </div>
                                         </button>
 
                                         <div class="tile-controls">
-                                            <button type="button" class="qty-button" data-action="decrease" data-product-id="{{ product.id }}" {% if product.stock == 0 %}disabled{% endif %}>−</button>
+                                            <button type="button" class="qty-button" data-action="decrease" data-product-id="{{ product.id }}" {% if product.status == 'out_of_stock' or product.stock == 0 %}disabled{% endif %}>−</button>
                                             <div class="qty-display-shell">
                                                 <span class="qty-label">Qty</span>
                                                 <strong class="qty-display" data-qty-display="{{ product.id }}">0</strong>
                                             </div>
-                                            <button type="button" class="qty-button" data-action="increase" data-product-id="{{ product.id }}" {% if product.stock == 0 %}disabled{% endif %}>+</button>
+                                            <button type="button" class="qty-button" data-action="increase" data-product-id="{{ product.id }}" {% if product.status == 'out_of_stock' or product.stock == 0 %}disabled{% endif %}>+</button>
                                         </div>
 
                                         <p class="stock-note">
