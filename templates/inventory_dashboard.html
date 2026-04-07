@@ -58,13 +58,26 @@
                     <article class="inventory-summary-card"><span>Tracked products</span><strong>{{ metrics.item_count }}</strong></article>
                 </div>
                 <div class="inventory-workbench">
-                    <form method="POST" action="{{ url_for('adjust_inventory') }}" class="inventory-adjust-form">
+                    <form method="POST" action="{{ url_for('adjust_inventory') }}" class="inventory-adjust-form" id="adjustForm">
                         <p class="eyebrow">Stock adjustment</p>
                         <h3>Record restocks and count corrections</h3>
-                        <select name="product_id" id="adjust-product-select" required>
-                            <option value="">Select Product</option>
-                            {% for product in active_products %}<option value="{{ product.id }}" data-has-variants="{{ 'yes' if variants_map.get(product.id) else 'no' }}">{{ product.name }} · {{ product.sku }} · {{ product.stock }} on hand</option>{% endfor %}
-                        </select>
+
+                        <div class="searchable-select-wrap">
+                            <input type="text" id="product-search" class="product-search-input" placeholder="Search products by name or SKU..." autocomplete="off">
+                            <div class="search-dropdown" id="product-dropdown" hidden>
+                                {% for product in active_products %}
+                                    <div class="search-option" data-value="{{ product.id }}" data-has-variants="{{ 'yes' if variants_map.get(product.id) else 'no' }}" data-label="{{ product.name }} · {{ product.sku }} · {{ product.stock }} on hand">
+                                        <span class="search-option-name">{{ product.name }}</span>
+                                        <span class="search-option-meta">{{ product.sku }} · <strong>{{ product.stock }}</strong> on hand</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <select name="product_id" id="adjust-product-select" required hidden>
+                                <option value="">Select Product</option>
+                                {% for product in active_products %}<option value="{{ product.id }}" data-has-variants="{{ 'yes' if variants_map.get(product.id) else 'no' }}">{{ product.name }} · {{ product.sku }} · {{ product.stock }} on hand</option>{% endfor %}
+                            </select>
+                        </div>
+
                         <select name="variant_id" id="adjust-variant-select">
                             <option value="">No variant (base product)</option>
                             {% for product in active_products %}
@@ -75,23 +88,52 @@
                                 {% endif %}
                             {% endfor %}
                         </select>
-                        <input type="number" name="quantity_change" placeholder="Adjustment quantity, e.g. 12 or -2" required>
+
+                        <div class="quick-adjust-group">
+                            <label class="quick-adjust-label">Quick adjust</label>
+                            <div class="quick-adjust-buttons">
+                                <button type="button" class="quick-btn negative" data-qty="-5">−5</button>
+                                <button type="button" class="quick-btn negative" data-qty="-1">−1</button>
+                                <button type="button" class="quick-btn positive" data-qty="+1">+1</button>
+                                <button type="button" class="quick-btn positive" data-qty="+5">+5</button>
+                                <button type="button" class="quick-btn positive" data-qty="+10">+10</button>
+                                <button type="button" class="quick-btn positive" data-qty="+25">+25</button>
+                            </div>
+                        </div>
+                        <input type="number" name="quantity_change" id="qty-input" placeholder="Or type quantity, e.g. 12 or -2" required>
+
                         <select name="reason" required>
                             <option value="restock">Restock</option>
                             <option value="manual_count">Manual Count</option>
                             <option value="damaged">Damaged</option>
                             <option value="wastage">Wastage</option>
                         </select>
-                        <button class="primary-button" type="submit">Save inventory movement</button>
+                        <button class="primary-button" type="submit" id="save-adjust-btn">Save inventory movement</button>
                     </form>
                     <article class="dashboard-subpanel">
                         <p class="eyebrow">Critical items</p>
                         <h3>Needs replenishment</h3>
                         <div class="table-shell compact-table admin-table-wrap">
                             <table class="table">
-                                <thead><tr><th>Item</th><th>Category</th><th>Stock</th><th>Reorder</th></tr></thead>
+                                <thead><tr><th>Item</th><th>Category</th><th>Stock</th><th>Reorder</th><th>Status</th></tr></thead>
                                 <tbody>
-                                    {% for item in inventory_watchlist %}<tr><td>{{ item.name }}</td><td>{{ item.category_name }}</td><td>{{ item.stock }}</td><td>{{ item.reorder_level }}</td></tr>{% else %}<tr><td colspan="4">No critical stock alerts.</td></tr>{% endfor %}
+                                    {% for item in inventory_watchlist %}
+                                        <tr>
+                                            <td>{{ item.name }}</td>
+                                            <td>{{ item.category_name }}</td>
+                                            <td>{{ item.stock }}</td>
+                                            <td>{{ item.reorder_level }}</td>
+                                            <td>
+                                                {% if item.stock == 0 %}
+                                                    <span class="stock-badge stock-out">Out of stock</span>
+                                                {% elif item.stock <= item.reorder_level %}
+                                                    <span class="stock-badge stock-low">Low</span>
+                                                {% else %}
+                                                    <span class="stock-badge stock-ok">OK</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% else %}<tr><td colspan="5">No critical stock alerts.</td></tr>{% endfor %}
                                 </tbody>
                             </table>
                         </div>
@@ -101,7 +143,22 @@
                     <table class="table">
                         <thead><tr><th>Time</th><th>Item</th><th>Reason</th><th>Change</th><th>Current Stock</th></tr></thead>
                         <tbody>
-                            {% for movement in recent_movements %}<tr><td>{{ movement.created_at }}</td><td>{{ movement.name }} · {{ movement.sku }}</td><td>{{ movement.reason|replace('_', ' ')|title }}</td><td class="{% if movement.quantity_change < 0 %}negative{% else %}positive{% endif %}">{{ movement.quantity_change }}</td><td>{{ movement.stock }}</td></tr>{% else %}<tr><td colspan="5">No stock movements recorded yet.</td></tr>{% endfor %}
+                            {% for movement in recent_movements %}
+                                <tr>
+                                    <td>{{ movement.created_at }}</td>
+                                    <td>{{ movement.name }} · {{ movement.sku }}</td>
+                                    <td><span class="reason-chip reason-{{ movement.reason }}">{{ movement.reason|replace('_', ' ')|title }}</span></td>
+                                    <td><span class="qty-badge {% if movement.quantity_change < 0 %}qty-negative{% else %}qty-positive{% endif %}">{{ '+' if movement.quantity_change > 0 }}{{ movement.quantity_change }}</span></td>
+                                    <td>
+                                        {{ movement.stock }}
+                                        {% if movement.stock == 0 %}
+                                            <span class="stock-badge stock-out">Out</span>
+                                        {% elif movement.stock <= 5 %}
+                                            <span class="stock-badge stock-low">Low</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% else %}<tr><td colspan="5">No stock movements recorded yet.</td></tr>{% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -208,8 +265,8 @@
                                     <td>{{ sale.total|php }}</td>
                                     <td>
                                         {% if sale.status == 'completed' %}
-                                            <form method="POST" action="{{ url_for('void_sale') }}" class="inline-form danger-form"><input type="hidden" name="sale_id" value="{{ sale.id }}"><button type="submit" class="ghost-link small-action danger-action">Void</button></form>
-                                            <form method="POST" action="{{ url_for('refund_sale') }}" class="inline-form danger-form"><input type="hidden" name="sale_id" value="{{ sale.id }}"><button type="submit" class="ghost-link small-action">Refund</button></form>
+                                            <form method="POST" action="{{ url_for('void_sale') }}" class="inline-form danger-form" onsubmit="return confirm('Void receipt #{{ sale.id }}? This will reverse the sale and restore stock. This cannot be undone.')"><input type="hidden" name="sale_id" value="{{ sale.id }}"><button type="submit" class="ghost-link small-action danger-action">Void</button></form>
+                                            <form method="POST" action="{{ url_for('refund_sale') }}" class="inline-form danger-form" onsubmit="return confirm('Refund receipt #{{ sale.id }}? The customer will be refunded {{ sale.total|php }}.')"><input type="hidden" name="sale_id" value="{{ sale.id }}"><button type="submit" class="ghost-link small-action">Refund</button></form>
                                         {% else %}
                                             <span class="panel-note">Closed</span>
                                         {% endif %}
@@ -248,48 +305,106 @@
     </main>
 
     <script>
+        /* ── Tab navigation ── */
         const navButtons = document.querySelectorAll('.admin-nav-link');
         const sections = document.querySelectorAll('[data-inventory-section]');
 
         function activateSection(targetId) {
-            sections.forEach((section) => {
-                section.hidden = section.id !== targetId;
-            });
-            navButtons.forEach((button) => {
-                button.classList.toggle('active', button.dataset.target === targetId);
-            });
+            sections.forEach((s) => { s.hidden = s.id !== targetId; });
+            navButtons.forEach((b) => { b.classList.toggle('active', b.dataset.target === targetId); });
         }
-
-        navButtons.forEach((button) => {
-            button.addEventListener('click', () => {
-                const targetId = button.dataset.target;
-                activateSection(targetId);
-                history.replaceState(null, '', `#${targetId}`);
-            });
+        navButtons.forEach((b) => {
+            b.addEventListener('click', () => { activateSection(b.dataset.target); history.replaceState(null, '', `#${b.dataset.target}`); });
         });
-
         const hashTarget = window.location.hash ? window.location.hash.slice(1) : 'stock-control';
-        const defaultTarget = document.getElementById(hashTarget) ? hashTarget : 'stock-control';
-        activateSection(defaultTarget);
+        activateSection(document.getElementById(hashTarget) ? hashTarget : 'stock-control');
 
+        /* ── Variant select toggle ── */
         const productSelect = document.getElementById('adjust-product-select');
         const variantSelect = document.getElementById('adjust-variant-select');
 
+        function syncVariants(productId) {
+            if (!variantSelect) return;
+            const hasVariants = productSelect.selectedOptions[0]?.dataset?.hasVariants === 'yes';
+            Array.from(variantSelect.querySelectorAll('.variant-option')).forEach((o) => { o.hidden = o.dataset.productId !== productId; });
+            variantSelect.value = '';
+            variantSelect.style.display = hasVariants ? '' : 'none';
+        }
         if (productSelect && variantSelect) {
-            productSelect.addEventListener('change', () => {
-                const selectedProductId = productSelect.value;
-                const hasVariants = productSelect.options[productSelect.selectedIndex]?.dataset?.hasVariants === 'yes';
-
-                Array.from(variantSelect.querySelectorAll('.variant-option')).forEach((opt) => {
-                    opt.hidden = opt.dataset.productId !== selectedProductId;
-                });
-
-                variantSelect.value = '';
-                variantSelect.style.display = hasVariants ? '' : 'none';
-            });
-
+            productSelect.addEventListener('change', () => syncVariants(productSelect.value));
             variantSelect.style.display = 'none';
         }
+
+        /* ── Live search product dropdown ── */
+        const searchInput = document.getElementById('product-search');
+        const dropdown = document.getElementById('product-dropdown');
+
+        if (searchInput && dropdown) {
+            const allOptions = Array.from(dropdown.querySelectorAll('.search-option'));
+
+            searchInput.addEventListener('focus', () => { dropdown.hidden = false; filterOptions(); });
+            searchInput.addEventListener('input', filterOptions);
+
+            function filterOptions() {
+                const q = searchInput.value.toLowerCase().trim();
+                let visible = 0;
+                allOptions.forEach((opt) => {
+                    const match = !q || opt.dataset.label.toLowerCase().includes(q);
+                    opt.hidden = !match;
+                    if (match) visible++;
+                });
+                dropdown.hidden = visible === 0 && q.length > 0;
+            }
+
+            allOptions.forEach((opt) => {
+                opt.addEventListener('click', () => {
+                    const val = opt.dataset.value;
+                    const label = opt.dataset.label;
+                    searchInput.value = label;
+                    productSelect.value = val;
+                    productSelect.dispatchEvent(new Event('change'));
+                    dropdown.hidden = true;
+                    syncVariants(val);
+                });
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.searchable-select-wrap')) dropdown.hidden = true;
+            });
+        }
+
+        /* ── Quick adjust buttons ── */
+        const qtyInput = document.getElementById('qty-input');
+        document.querySelectorAll('.quick-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const current = parseInt(qtyInput.value) || 0;
+                const delta = parseInt(btn.dataset.qty);
+                qtyInput.value = current + delta;
+                qtyInput.focus();
+            });
+        });
+
+        /* ── Confirm large adjustments ── */
+        const adjustForm = document.getElementById('adjustForm');
+        if (adjustForm) {
+            adjustForm.addEventListener('submit', (e) => {
+                const qty = Math.abs(parseInt(qtyInput.value) || 0);
+                if (qty >= 50) {
+                    if (!confirm(`You're adjusting by ${qtyInput.value} units. Are you sure?`)) {
+                        e.preventDefault();
+                    }
+                }
+            });
+        }
+
+        /* ── Inline success feedback ── */
+        const flashCards = document.querySelectorAll('.flash-card.success');
+        flashCards.forEach((card) => {
+            card.innerHTML = '✓ ' + card.textContent;
+            card.classList.add('flash-success-animate');
+            setTimeout(() => { card.style.opacity = '0'; card.style.transform = 'translateY(-10px)'; }, 3000);
+            setTimeout(() => { card.remove(); }, 3500);
+        });
     </script>
 </body>
 </html>

@@ -918,6 +918,158 @@ button {
     padding: 1.5rem;
 }
 
+/* ── Searchable product dropdown ── */
+.searchable-select-wrap {
+    position: relative;
+}
+.product-search-input {
+    width: 100%;
+    box-sizing: border-box;
+}
+.search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-top: 0;
+    border-radius: 0 0 var(--radius) var(--radius);
+    z-index: 50;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+}
+.search-option {
+    padding: 0.6rem 0.9rem;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    transition: background 0.15s;
+}
+.search-option:hover {
+    background: var(--bg);
+}
+.search-option-name {
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--text);
+}
+.search-option-meta {
+    font-size: 0.78rem;
+    color: var(--muted);
+}
+
+/* ── Quick adjust buttons ── */
+.quick-adjust-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.quick-adjust-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 600;
+}
+.quick-adjust-buttons {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+.quick-btn {
+    padding: 0.45rem 0.85rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: #fff;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.88rem;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+.quick-btn.positive {
+    color: #0f6a5d;
+    border-color: #c8ede6;
+}
+.quick-btn.positive:hover {
+    background: #e2f7f3;
+    border-color: #0f6a5d;
+}
+.quick-btn.negative {
+    color: #b54a2f;
+    border-color: #f5d0c5;
+}
+.quick-btn.negative:hover {
+    background: #fde8dd;
+    border-color: #b54a2f;
+}
+
+/* ── Stock status badges ── */
+.stock-badge {
+    display: inline-block;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+    margin-left: 0.3rem;
+}
+.stock-ok {
+    background: #e2f7f3;
+    color: #0f6a5d;
+}
+.stock-low {
+    background: #fff4ec;
+    color: #b54a2f;
+}
+.stock-out {
+    background: #b54a2f;
+    color: #fff;
+}
+
+/* ── Quantity change badges ── */
+.qty-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius);
+    font-weight: 700;
+    font-size: 0.88rem;
+}
+.qty-positive {
+    background: #e2f7f3;
+    color: #0f6a5d;
+}
+.qty-negative {
+    background: #fde8dd;
+    color: #b54a2f;
+}
+
+/* ── Reason chips ── */
+.reason-chip {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius);
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: var(--bg);
+    color: var(--text);
+}
+.reason-restock { background: #e2f7f3; color: #0f6a5d; }
+.reason-manual_count { background: #e8f0fe; color: #1a56db; }
+.reason-damaged { background: #fde8dd; color: #b54a2f; }
+.reason-wastage { background: #fff4ec; color: #92400e; }
+.reason-sale { background: #f3f4f6; color: #4b5563; }
+
+/* ── Flash success animation ── */
+.flash-success-animate {
+    transition: opacity 0.4s, transform 0.4s;
+}
+
 .table-shell {
     overflow-x: auto;
     border-radius: 20px;
