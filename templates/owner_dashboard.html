@@ -9,27 +9,34 @@
     <script>document.documentElement.dataset.theme=localStorage.getItem('veyron-theme')||'light';</script>
 </head>
 <body class="admin-body">
-    <main class="dashboard-shell">
-        <aside class="dashboard-sidebar">
-            <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo small">
-            <p class="eyebrow">Owner</p>
-            <h1>{{ business_name }}</h1>
-            <nav class="admin-nav">
-                <a href="#oversight" class="ghost-link">Oversight</a>
-                <a href="#alerts" class="ghost-link">Alerts</a>
-                <a href="#backups" class="ghost-link">Backups</a>
-                <a href="#settings" class="ghost-link">Hardware Settings</a>
-                <a href="#branding" class="ghost-link">Branding</a>
-                <a href="#audit" class="ghost-link">Audit Trail</a>
-            </nav>
-            <div class="side-launch-links">
-                <a href="{{ url_for('admin_dashboard') }}" class="open-admin-link side-launch-link">Open Admin</a>
-                <a href="{{ url_for('inventory_dashboard') }}" class="open-inventory-link side-launch-link">Open Inventory</a>
-                <a href="{{ url_for('pos') }}" class="pos-launch-link side-launch-link">Go to POS</a>
-                <a href="{{ url_for('logout') }}" class="ghost-link side-launch-link">Logout</a>
+<div class="page-wrap">
+    <header class="site-header">
+        <div class="header-brand">
+            <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo">
+            <div>
+                <p class="eyebrow">Owner</p>
+                <h1>{{ business_name }}</h1>
             </div>
-            <p class="sidebar-note">Owner view focuses on controls that affect the whole business: backup, restore, hardware preferences, and audit visibility.</p>
+        </div>
+        <nav class="header-nav">
+            <a href="{{ url_for('admin_dashboard') }}" class="ghost-link">Admin</a>
+            <a href="{{ url_for('inventory_dashboard') }}" class="ghost-link">Inventory</a>
+            <a href="{{ url_for('pos') }}" class="pos-launch-link ghost-link">POS</a>
+            <span class="system-pill">{{ current_user.full_name }}</span>
             <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+            <a href="{{ url_for('logout') }}" class="ghost-link">Logout</a>
+        </nav>
+    </header>
+    <main class="dashboard-shell has-sidebar">
+        <aside class="dashboard-sidebar">
+            <nav class="admin-nav">
+                <a href="#oversight" class="admin-nav-link active">Oversight</a>
+                <a href="#alerts" class="admin-nav-link">Alerts</a>
+                <a href="#backups" class="admin-nav-link">Backups</a>
+                <a href="#settings" class="admin-nav-link">Hardware</a>
+                <a href="#branding" class="admin-nav-link">Branding</a>
+                <a href="#audit" class="admin-nav-link">Audit Trail</a>
+            </nav>
         </aside>
 
         <section class="dashboard-content">
@@ -238,7 +245,7 @@
                             </div>
                             <label class="branding-upload-label">
                                 <span class="ghost-link">Upload new logo</span>
-                                <input type="file" name="brand_logo" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" hidden id="branding-logo-input">
+                                <input type="file" name="brand_logo" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,application/pdf" hidden id="branding-logo-input">
                             </label>
                             <p class="sidebar-note">PNG, JPG, SVG or WebP. Appears on all pages and receipts.</p>
                         </div>
@@ -296,9 +303,20 @@
                         var logoImg = document.getElementById('branding-logo-img');
                         if (logoInput) logoInput.addEventListener('change', function() {
                             if (this.files && this.files[0]) {
-                                var reader = new FileReader();
-                                reader.onload = function(e) { logoImg.src = e.target.result; };
-                                reader.readAsDataURL(this.files[0]);
+                                var file = this.files[0];
+                                if (file.type === 'application/pdf') {
+                                    logoImg.style.display = 'none';
+                                    var hint = logoImg.parentNode.querySelector('.pdf-hint');
+                                    if (!hint) { hint = document.createElement('span'); hint.className = 'pdf-hint'; hint.style.cssText = 'font-size:0.85rem;color:var(--muted);text-align:center;padding:1rem 0;'; logoImg.parentNode.appendChild(hint); }
+                                    hint.textContent = '\uD83D\uDCC4 ' + file.name;
+                                } else {
+                                    logoImg.style.display = '';
+                                    var hint = logoImg.parentNode.querySelector('.pdf-hint');
+                                    if (hint) hint.remove();
+                                    var reader = new FileReader();
+                                    reader.onload = function(e) { logoImg.src = e.target.result; };
+                                    reader.readAsDataURL(file);
+                                }
                             }
                         });
                         var presets = { warm: ['#0f6a5d','#b54a2f'], classic: ['#2c5282','#c05621'], dark: ['#2d3748','#ed8936'], rose: ['#9b2c2c','#d69e2e'], ocean: ['#2b6cb0','#38a169'] };
@@ -367,6 +385,7 @@
             </section>
         </section>
     </main>
+</div>
     <script>
     function toggleTheme(){
         const t=document.documentElement.dataset.theme==='dark'?'light':'dark';

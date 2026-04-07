@@ -6,8 +6,31 @@
     <title>{{ business_name }} Receipt #{{ sale.id }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>:root{--accent:{{ brand_primary }};--accent-strong:{{ brand_primary }};--warning:{{ brand_accent }};}</style>
+    <script>document.documentElement.dataset.theme=localStorage.getItem('veyron-theme')||'light';</script>
 </head>
 <body class="receipt-body">
+<div class="page-wrap">
+    <header class="site-header no-print">
+        <div class="header-brand">
+            <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo">
+            <div>
+                <p class="eyebrow">Receipt</p>
+                <h1>{{ business_name }}</h1>
+            </div>
+        </div>
+        <nav class="header-nav">
+            <a href="{{ url_for('pos') }}" class="pos-launch-link ghost-link">Back to POS</a>
+            {% if current_user and current_user.role in ['owner', 'admin'] %}
+                <a href="{{ url_for('admin_dashboard') }}" class="ghost-link">Admin</a>
+                <a href="{{ url_for('inventory_dashboard') }}" class="ghost-link">Inventory</a>
+            {% endif %}
+            {% if current_user and current_user.role == 'owner' %}
+                <a href="{{ url_for('owner_dashboard') }}" class="ghost-link">Owner</a>
+            {% endif %}
+            <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+            <a href="{{ url_for('logout') }}" class="ghost-link">Logout</a>
+        </nav>
+    </header>
     <main class="receipt-shell">
         <section class="receipt-card">
             <div class="receipt-actions no-print">
@@ -15,9 +38,7 @@
             </div>
 
             <header class="receipt-header">
-                <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo small">
                 <div>
-                    <p class="eyebrow">Receipt</p>
                     <h1>Order #{{ sale.id }}</h1>
                     <p>{{ business_name }} · {{ sale.created_at }} · {{ sale.payment_method }} · {{ sale.status|title }}</p>
                 </div>
@@ -45,14 +66,6 @@
             </div>
 
             <footer class="receipt-footer">
-                <a href="{{ url_for('pos') }}" class="ghost-link">Back to POS</a>
-                {% if current_user and current_user.role == 'owner' %}
-                    <a href="{{ url_for('owner_dashboard') }}" class="ghost-link">Owner</a>
-                {% endif %}
-                {% if current_user and current_user.role in ['owner', 'admin'] %}
-                    <a href="{{ url_for('inventory_dashboard') }}" class="open-inventory-link">Open Inventory</a>
-                    <a href="{{ url_for('admin_dashboard') }}" class="primary-button">Open Admin</a>
-                {% endif %}
                 {% if settings.cash_drawer_enabled == '1' %}
                     <form method="post" action="{{ url_for('open_cash_drawer_hook') }}" class="inline-form">
                         <input type="hidden" name="return_to" value="{{ url_for('receipt', sale_id=sale.id) }}">
@@ -62,6 +75,7 @@
             </footer>
         </section>
     </main>
+</div>
 
     <script>
         const printReceiptButton = document.getElementById('print-receipt-button');
@@ -77,6 +91,10 @@
                 window.print();
             });
         {% endif %}
+    </script>
+    <script>
+    function toggleTheme(){var h=document.documentElement;var t=h.dataset.theme==='dark'?'light':'dark';h.dataset.theme=t;localStorage.setItem('veyron-theme',t);document.querySelectorAll('.theme-toggle').forEach(function(b){b.textContent=t==='dark'?'☀️':'🌙';});}
+    document.querySelectorAll('.theme-toggle').forEach(function(b){b.textContent=document.documentElement.dataset.theme==='dark'?'☀️':'🌙';});
     </script>
 </body>
 </html>

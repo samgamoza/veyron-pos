@@ -9,9 +9,9 @@
 <body class="admin-body">
     <main class="login-shell">
         <section class="login-card">
-            <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo">
+            <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo login-logo">
             <p class="eyebrow">Secure access</p>
-            <h1>{{ business_name }}</h1>
+            <h1 class="login-title">{{ business_name }}</h1>
             <p class="hero-text">Sign in by username and PIN to use the POS, Admin, Inventory, or Owner workspace.</p>
 
             {% with messages = get_flashed_messages(with_categories=true) %}

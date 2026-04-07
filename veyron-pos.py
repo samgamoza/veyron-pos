@@ -39,7 +39,7 @@ DATABASE_ENGINE = "postgres" if DATABASE_URL and not DATABASE_URL.startswith("sq
 PUBLIC_LOGO = BASE_DIR / "static" / "public" / "logo.png"
 FALLBACK_LOGO = "images/logo.png"
 PRODUCT_IMAGES_DIR = Path(os.getenv("PRODUCT_IMAGES_DIR", str(BASE_DIR / "static" / "images" / "products")))
-ALLOWED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
+ALLOWED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".pdf"}
 PLACEHOLDER_MAP = {
     "cakes": "images/products/placeholder-cake.svg",
     "pastries": "images/products/placeholder-pastry.svg",
@@ -1735,14 +1735,20 @@ def logout():
 def pos() -> str:
     products = fetch_pos_products()
     variants_map = fetch_variants_by_product()
-    highlighted_total = sum(product["price"] for product in products[:3])
     low_stock_count = sum(1 for product in products if product["stock"] <= product["reorder_level"])
+    conn = get_connection()
+    today_stats = conn.execute(
+        "SELECT COALESCE(SUM(total), 0) AS revenue, COUNT(*) AS orders "
+        "FROM sales WHERE DATE(created_at) = DATE('now', 'localtime') AND status = 'completed'"
+    ).fetchone()
+    conn.close()
     return render_template(
         "pos.html",
         products=products,
         product_categories=build_pos_categories(products),
         variants_map=variants_map,
-        highlighted_total=highlighted_total,
+        today_revenue=today_stats["revenue"],
+        today_orders=today_stats["orders"],
         low_stock_count=low_stock_count,
         upcoming_products=fetch_upcoming_products(),
         settings=fetch_app_settings(),
@@ -3171,9 +3177,20 @@ def save_branding():
         ext = Path(filename).suffix.lower()
         if ext in ALLOWED_IMAGE_EXTENSIONS:
             BRAND_LOGO_DIR.mkdir(parents=True, exist_ok=True)
-            save_path = BRAND_LOGO_DIR / f"logo{ext}"
-            logo_file.save(save_path)
-            branding["brand_logo_path"] = f"uploads/branding/logo{ext}"
+            if ext == ".pdf":
+                import fitz
+                pdf_bytes = logo_file.read()
+                doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+                page = doc[0]
+                pix = page.get_pixmap(dpi=300)
+                save_path = BRAND_LOGO_DIR / "logo.png"
+                pix.save(str(save_path))
+                doc.close()
+                branding["brand_logo_path"] = "uploads/branding/logo.png"
+            else:
+                save_path = BRAND_LOGO_DIR / f"logo{ext}"
+                logo_file.save(save_path)
+                branding["brand_logo_path"] = f"uploads/branding/logo{ext}"
 
     with get_connection() as connection:
         for key, value in branding.items():

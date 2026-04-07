@@ -9,24 +9,45 @@
     <script>document.documentElement.dataset.theme=localStorage.getItem('veyron-theme')||'light';</script>
 </head>
 <body class="aurora-body">
-    <main class="app-shell pos-shell">
-        <section class="hero-panel">
-            <div class="hero-copy">
-                <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo">
-                <p class="eyebrow">Philippine SME POS</p>
+<div class="page-wrap">
+    <header class="site-header">
+        <div class="header-brand">
+            <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo">
+            <div>
+                <p class="eyebrow">POS</p>
                 <h1>{{ business_name }}</h1>
-                <p class="hero-text">A front-counter POS designed for cakes, pastries, and Pick-a Pika service with stronger inventory visibility for fast-moving small businesses.</p>
-                <div class="system-access-links">
-                    <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
-                    <span class="system-pill">{{ current_user.full_name }} · {{ current_user.role|title }}</span>
-                    {% if current_user.role == 'owner' %}<a href="{{ url_for('owner_dashboard') }}" class="ghost-link">Owner</a>{% endif %}
-                    <a href="{{ url_for('logout') }}" class="ghost-link">Logout</a>
-                </div>
             </div>
-            <div class="hero-highlight">
-                <p>Top basket snapshot</p>
-                <strong>{{ highlighted_total|php }}</strong>
-                <span>VAT rate {{ '%.0f'|format(vat_rate * 100) }}%</span>
+        </div>
+        <nav class="header-nav">
+            {% if current_user.role in ['owner', 'admin'] %}
+                <a href="{{ url_for('admin_dashboard') }}" class="ghost-link">Admin</a>
+                <a href="{{ url_for('inventory_dashboard') }}" class="ghost-link">Inventory</a>
+            {% endif %}
+            {% if current_user.role == 'owner' %}
+                <a href="{{ url_for('owner_dashboard') }}" class="ghost-link">Owner</a>
+            {% endif %}
+            <span class="system-pill">{{ current_user.full_name }} · {{ current_user.role|title }}</span>
+            <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+            <a href="{{ url_for('logout') }}" class="ghost-link">Logout</a>
+        </nav>
+    </header>
+    <main class="app-shell pos-shell">
+        <section class="hero-panel pos-stats-bar">
+            <div class="pos-stat">
+                <span>Today's sales</span>
+                <strong>{{ today_revenue|php }}</strong>
+            </div>
+            <div class="pos-stat">
+                <span>Orders today</span>
+                <strong>{{ today_orders }}</strong>
+            </div>
+            <div class="pos-stat">
+                <span>Low stock items</span>
+                <strong class="{% if low_stock_count > 0 %}warning-text{% endif %}">{{ low_stock_count }}</strong>
+            </div>
+            <div class="pos-stat">
+                <span>VAT rate</span>
+                <strong>{{ '%.0f'|format(vat_rate * 100) }}%</strong>
             </div>
         </section>
 
@@ -50,10 +71,6 @@
                         </div>
                         <div class="system-access-links">
                             <span class="system-pill">POS active</span>
-                            {% if current_user.role in ['owner', 'admin'] %}
-                                <a href="{{ url_for('admin_dashboard') }}" class="open-admin-link">Open Admin</a>
-                                <a href="{{ url_for('inventory_dashboard') }}" class="open-inventory-link">Open Inventory</a>
-                            {% endif %}
                         </div>
                     </div>
 
@@ -236,6 +253,7 @@
             </section>
         </form>
     </main>
+</div>
 
     <script>
         const cashierForm = document.querySelector('.cashier-form');

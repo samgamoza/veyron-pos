@@ -9,11 +9,28 @@
     <script>document.documentElement.dataset.theme=localStorage.getItem('veyron-theme')||'light';</script>
 </head>
 <body class="admin-body">
-    <main class="dashboard-shell">
+<div class="page-wrap">
+    <header class="site-header">
+        <div class="header-brand">
+            <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo">
+            <div>
+                <p class="eyebrow">Admin</p>
+                <h1>{{ business_name }}</h1>
+            </div>
+        </div>
+        <nav class="header-nav">
+            {% if current_user and current_user.role == 'owner' %}
+                <a href="{{ url_for('owner_dashboard') }}" class="ghost-link">Owner</a>
+            {% endif %}
+            <a href="{{ url_for('inventory_dashboard') }}" class="ghost-link">Inventory</a>
+            <a href="{{ url_for('pos') }}" class="pos-launch-link ghost-link">POS</a>
+            <span class="system-pill">{{ current_user.full_name }}</span>
+            <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+            <a href="{{ url_for('logout') }}" class="ghost-link">Logout</a>
+        </nav>
+    </header>
+    <main class="dashboard-shell has-sidebar">
         <aside class="dashboard-sidebar">
-            <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo small">
-            <p class="eyebrow">Admin</p>
-            <h1>{{ business_name }}</h1>
             <nav class="admin-nav">
                 <button type="button" class="collapsible admin-nav-link active" data-target="products">Products</button>
                 <button type="button" class="collapsible admin-nav-link" data-target="categories">Categories</button>
@@ -22,16 +39,6 @@
                 <button type="button" class="collapsible admin-nav-link" data-target="users">Users</button>
                 <button type="button" class="collapsible admin-nav-link" data-target="audit">Audit</button>
             </nav>
-            <div class="side-launch-links">
-                {% if current_user and current_user.role == 'owner' %}
-                    <a href="{{ url_for('owner_dashboard') }}" class="ghost-link side-launch-link">Open Owner</a>
-                {% endif %}
-                <a href="{{ url_for('inventory_dashboard') }}" class="open-inventory-link side-launch-link">Open Inventory</a>
-                <a href="{{ url_for('pos') }}" class="pos-launch-link side-launch-link">Go to POS</a>
-                <a href="{{ url_for('logout') }}" class="ghost-link side-launch-link">Logout</a>
-            </div>
-            <p class="sidebar-note">Admin now handles product maintenance, reference setup, staff access, and review of recent system activity.</p>
-            <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
         </aside>
 
         <section class="dashboard-content">
@@ -456,6 +463,7 @@
             </section>
         </section>
     </main>
+</div>
 
     <script>
         const navButtons = document.querySelectorAll('.admin-nav-link');

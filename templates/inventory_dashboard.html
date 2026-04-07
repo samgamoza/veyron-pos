@@ -9,11 +9,28 @@
     <script>document.documentElement.dataset.theme=localStorage.getItem('veyron-theme')||'light';</script>
 </head>
 <body class="admin-body">
-    <main class="dashboard-shell">
+<div class="page-wrap">
+    <header class="site-header">
+        <div class="header-brand">
+            <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo">
+            <div>
+                <p class="eyebrow">Inventory</p>
+                <h1>{{ business_name }}</h1>
+            </div>
+        </div>
+        <nav class="header-nav">
+            {% if current_user and current_user.role == 'owner' %}
+                <a href="{{ url_for('owner_dashboard') }}" class="ghost-link">Owner</a>
+            {% endif %}
+            <a href="{{ url_for('admin_dashboard') }}" class="ghost-link">Admin</a>
+            <a href="{{ url_for('pos') }}" class="pos-launch-link ghost-link">POS</a>
+            <span class="system-pill">{{ current_user.full_name }}</span>
+            <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+            <a href="{{ url_for('logout') }}" class="ghost-link">Logout</a>
+        </nav>
+    </header>
+    <main class="dashboard-shell has-sidebar">
         <aside class="dashboard-sidebar">
-            <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo small">
-            <p class="eyebrow">Inventory</p>
-            <h1>{{ business_name }}</h1>
             <nav class="admin-nav">
                 <button type="button" class="collapsible admin-nav-link active" data-target="stock-control">Stock Control</button>
                 <button type="button" class="collapsible admin-nav-link" data-target="suppliers">Suppliers</button>
@@ -23,16 +40,6 @@
                 <button type="button" class="collapsible admin-nav-link" data-target="reports">Reports</button>
                 <button type="button" class="collapsible admin-nav-link" data-target="pricing-wizard">Pricing Wizard</button>
             </nav>
-            <div class="side-launch-links">
-                {% if current_user and current_user.role == 'owner' %}
-                    <a href="{{ url_for('owner_dashboard') }}" class="ghost-link side-launch-link">Open Owner</a>
-                {% endif %}
-                <a href="{{ url_for('admin_dashboard') }}" class="open-admin-link side-launch-link">Open Admin</a>
-                <a href="{{ url_for('pos') }}" class="pos-launch-link side-launch-link">Go to POS</a>
-                <a href="{{ url_for('logout') }}" class="ghost-link side-launch-link">Logout</a>
-            </div>
-            <p class="sidebar-note">Inventory handles day-to-day stock control, supplier receiving, periodic counts, and sales reversals.</p>
-            <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
         </aside>
 
         <section class="dashboard-content">
@@ -527,6 +534,7 @@
 
         </section>
     </main>
+</div>
 
     <script>
         /* ── Tab navigation ── */
