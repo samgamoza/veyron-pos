@@ -1502,6 +1502,49 @@ button {
     gap: 0.5rem;
     padding: 0.5rem;
 
+/* ── Product Filter Bar ── */
+
+.product-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 0;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.product-filter-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-right: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.product-filter-btn {
+    padding: 0.35rem 0.85rem;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface);
+    color: var(--body);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.product-filter-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.product-filter-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
 /* ── Daily Shift Card ── */
 
 .shift-card {

@@ -51,12 +51,35 @@
 
             <section class="dashboard-panel admin-section-card" id="stock-control" data-inventory-section>
                 <div class="section-heading"><div><p class="eyebrow">Inventory</p><h2>Stock control center</h2></div></div>
-                <div class="inventory-summary-grid">
-                    <article class="inventory-summary-card"><span>Inventory cost</span><strong>{{ metrics.inventory_cost_value|php }}</strong></article>
-                    <article class="inventory-summary-card"><span>Inventory retail</span><strong>{{ metrics.inventory_retail_value|php }}</strong></article>
-                    <article class="inventory-summary-card"><span>Upcoming items</span><strong>{{ metrics.upcoming_count }}</strong></article>
-                    <article class="inventory-summary-card"><span>Tracked products</span><strong>{{ metrics.item_count }}</strong></article>
+
+                <div class="product-filter-bar">
+                    <span class="product-filter-label">View:</span>
+                    <button type="button" class="product-filter-btn active" data-filter="all">All Products</button>
+                    {% for product in active_products %}
+                        <button type="button" class="product-filter-btn" data-filter="{{ product.id }}">{{ product.name }}</button>
+                    {% endfor %}
                 </div>
+
+                <div class="inventory-summary-grid">
+                    <article class="inventory-summary-card"><span id="inv-cost-label">Inventory cost</span><strong id="inv-cost-value">{{ metrics.inventory_cost_value|php }}</strong></article>
+                    <article class="inventory-summary-card"><span id="inv-retail-label">Inventory retail</span><strong id="inv-retail-value">{{ metrics.inventory_retail_value|php }}</strong></article>
+                    <article class="inventory-summary-card"><span id="inv-stock-label">Stock on hand</span><strong id="inv-stock-value">{{ metrics.units_in_stock }}</strong></article>
+                    <article class="inventory-summary-card"><span id="inv-count-label">Tracked products</span><strong id="inv-count-value">{{ metrics.item_count }}</strong></article>
+                </div>
+
+                <script>
+                    var _productData = [
+                        {% for product in active_products %}
+                        { id: {{ product.id }}, name: "{{ product.name }}", stock: {{ product.stock }}, cost: {{ product.cost }}, price: {{ product.price }} }{{ "," if not loop.last }}
+                        {% endfor %}
+                    ];
+                    var _totals = {
+                        cost: {{ metrics.inventory_cost_value }},
+                        retail: {{ metrics.inventory_retail_value }},
+                        stock: {{ metrics.units_in_stock }},
+                        count: {{ metrics.item_count }}
+                    };
+                </script>
 
                 {# ── Daily Shift Card ── #}
                 <div class="shift-card">
@@ -474,6 +497,51 @@
             card.classList.add('flash-success-animate');
             setTimeout(() => { card.style.opacity = '0'; card.style.transform = 'translateY(-10px)'; }, 3000);
             setTimeout(() => { card.remove(); }, 3500);
+        });
+
+        /* ── Product filter for inventory summary ── */
+        function formatPHP(val) {
+            return 'PHP ' + val.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        document.querySelectorAll('.product-filter-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.product-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+
+                var filter = btn.dataset.filter;
+                var costEl = document.getElementById('inv-cost-value');
+                var retailEl = document.getElementById('inv-retail-value');
+                var stockEl = document.getElementById('inv-stock-value');
+                var countEl = document.getElementById('inv-count-value');
+                var costLabel = document.getElementById('inv-cost-label');
+                var retailLabel = document.getElementById('inv-retail-label');
+                var stockLabel = document.getElementById('inv-stock-label');
+                var countLabel = document.getElementById('inv-count-label');
+
+                if (filter === 'all') {
+                    costEl.textContent = formatPHP(_totals.cost);
+                    retailEl.textContent = formatPHP(_totals.retail);
+                    stockEl.textContent = _totals.stock;
+                    countEl.textContent = _totals.count;
+                    costLabel.textContent = 'Inventory cost';
+                    retailLabel.textContent = 'Inventory retail';
+                    stockLabel.textContent = 'Stock on hand';
+                    countLabel.textContent = 'Tracked products';
+                } else {
+                    var p = _productData.find(function(x) { return x.id == filter; });
+                    if (p) {
+                        costEl.textContent = formatPHP(p.stock * p.cost);
+                        retailEl.textContent = formatPHP(p.stock * p.price);
+                        stockEl.textContent = p.stock;
+                        countEl.textContent = formatPHP(p.price);
+                        costLabel.textContent = p.name + ' cost value';
+                        retailLabel.textContent = p.name + ' retail value';
+                        stockLabel.textContent = p.name + ' stock';
+                        countLabel.textContent = 'Selling price';
+                    }
+                }
+            });
         });
     </script>
 </body>
