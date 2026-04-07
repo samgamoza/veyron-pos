@@ -2296,3 +2296,333 @@ button {
 .variant-sub-table .table {
     font-size: 0.88rem;
 }
+
+/* ══════════════════════════════════════════════
+   DARK MODE
+   ══════════════════════════════════════════════ */
+[data-theme="dark"] {
+    --bg: #1a1a2e;
+    --bg-strong: #16213e;
+    --surface: rgba(30, 32, 50, 0.92);
+    --surface-strong: #232540;
+    --ink: #e8e6e3;
+    --muted: #9b97a0;
+    --accent-soft: rgba(15, 106, 93, 0.18);
+    --warning-soft: rgba(181, 74, 47, 0.15);
+    --line: rgba(255, 255, 255, 0.08);
+    --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] body {
+    background:
+        radial-gradient(circle at top left, rgba(15, 106, 93, 0.12), transparent 22%),
+        radial-gradient(circle at bottom right, rgba(181, 74, 47, 0.1), transparent 28%),
+        linear-gradient(135deg, var(--bg), #1e1e34 45%, var(--bg-strong));
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select {
+    background: rgba(30, 32, 50, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--ink);
+}
+
+[data-theme="dark"] .dashboard-sidebar {
+    background: rgba(26, 26, 46, 0.95) !important;
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .hero-panel {
+    background: rgba(26, 26, 46, 0.88);
+}
+
+[data-theme="dark"] .product-card,
+[data-theme="dark"] .metric-card,
+[data-theme="dark"] .flash-card,
+[data-theme="dark"] .checkout-panel {
+    background: var(--surface);
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .checkout-panel {
+    background: rgba(26, 26, 46, 0.95);
+}
+
+[data-theme="dark"] .category-tabs button {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--muted);
+}
+
+[data-theme="dark"] .category-tabs button.active {
+    background: var(--accent);
+    color: #fff;
+}
+
+[data-theme="dark"] .product-tile,
+[data-theme="dark"] .variant-tile {
+    background: var(--surface);
+}
+
+[data-theme="dark"] .product-tile:hover,
+[data-theme="dark"] .variant-tile:hover {
+    background: var(--surface-strong);
+}
+
+[data-theme="dark"] table th {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .admin-nav-link,
+[data-theme="dark"] .admin-nav .ghost-link {
+    color: var(--muted);
+}
+
+[data-theme="dark"] .admin-nav-link.active,
+[data-theme="dark"] .admin-nav .ghost-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--ink);
+}
+
+[data-theme="dark"] .variant-sub-table {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .sidebar-note {
+    color: var(--muted);
+    opacity: 0.7;
+}
+
+[data-theme="dark"] .status-chip {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .ghost-link {
+    border-color: rgba(255, 255, 255, 0.12);
+    color: var(--muted);
+}
+
+[data-theme="dark"] .ghost-link:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--ink);
+}
+
+[data-theme="dark"] .branding-preset-option {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .branding-preset-option:has(input:checked) {
+    background: rgba(15, 106, 93, 0.15);
+}
+
+[data-theme="dark"] .branding-logo-preview {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: var(--bg);
+}
+
+[data-theme="dark"] .branding-upload-label {
+    background: var(--surface);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Dark Mode Toggle Button ── */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(15, 106, 93, 0.08);
+    border: 1px solid var(--line);
+    cursor: pointer;
+    font-size: 1.15rem;
+    transition: background 0.25s, transform 0.3s;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+    background: var(--accent);
+    color: #fff;
+    transform: scale(1.1);
+}
+
+.theme-toggle:active {
+    transform: scale(0.95);
+}
+
+[data-theme="dark"] .theme-toggle {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #f5c542;
+}
+
+[data-theme="dark"] .theme-toggle:hover {
+    background: #f5c542;
+    color: #1a1a2e;
+}
+
+/* ══════════════════════════════════════════════
+   ANIMATIONS & MICRO-INTERACTIONS
+   ══════════════════════════════════════════════ */
+
+/* Global smooth color transitions for theme switching */
+body,
+.dashboard-sidebar,
+.hero-panel,
+.checkout-panel,
+input,
+select,
+.ghost-link,
+.status-chip,
+table th {
+    transition: background 0.35s ease, color 0.35s ease, border-color 0.35s ease;
+}
+
+/* Card entrance animation */
+@keyframes cardFadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.product-card,
+.metric-card {
+    animation: cardFadeUp 0.35s ease both;
+}
+
+/* Stagger product cards */
+.product-card:nth-child(2) { animation-delay: 0.04s; }
+.product-card:nth-child(3) { animation-delay: 0.08s; }
+.product-card:nth-child(4) { animation-delay: 0.12s; }
+.product-card:nth-child(5) { animation-delay: 0.16s; }
+.product-card:nth-child(6) { animation-delay: 0.20s; }
+
+/* Card hover lift */
+.product-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.35s ease, border-color 0.35s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.product-card.out-of-stock-status:hover,
+.product-card.sold-out:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Metric card hover */
+.metric-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.35s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Button press feedback */
+.primary-button,
+.qty-button,
+.admin-submit {
+    transition: transform 0.12s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.primary-button:active,
+.qty-button:active,
+.admin-submit:active {
+    transform: scale(0.96);
+}
+
+/* Nav link smooth highlight */
+.admin-nav-link,
+.admin-nav .ghost-link {
+    transition: background 0.2s ease, color 0.2s ease, padding-left 0.2s ease;
+}
+
+.admin-nav-link:hover,
+.admin-nav .ghost-link:hover {
+    padding-left: 0.3rem;
+}
+
+/* Side launch link hover slide */
+.side-launch-link {
+    transition: transform 0.15s ease, color 0.2s ease;
+}
+
+.side-launch-link:hover {
+    transform: translateX(3px);
+}
+
+/* Status chip pop */
+.status-chip {
+    transition: transform 0.15s ease, background 0.35s ease;
+}
+
+.status-chip:hover {
+    transform: scale(1.05);
+}
+
+/* Category tab switch animation */
+.category-tabs button {
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.category-tabs button:active {
+    transform: scale(0.95);
+}
+
+/* Flash message slide-in */
+@keyframes flashSlideIn {
+    from { opacity: 0; transform: translateX(-20px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+.flash-card {
+    animation: flashSlideIn 0.3s ease both;
+}
+
+/* Variant row expand */
+.variant-row {
+    transition: background 0.2s ease;
+}
+
+.variant-row:hover {
+    background: rgba(15, 106, 93, 0.03);
+}
+
+[data-theme="dark"] .variant-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Checkout panel item transitions */
+.cart-item {
+    transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+/* Tile controls smooth show */
+.tile-controls {
+    transition: opacity 0.2s ease;
+}
+
+/* Qty display pulse on change */
+@keyframes qtyPulse {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.qty-display.pulse {
+    animation: qtyPulse 0.25s ease;
+}
+
+/* Logo subtle float on sidebar */
+.brand-logo.small {
+    transition: transform 0.3s ease;
+}
+
+.brand-logo.small:hover {
+    transform: scale(1.08) rotate(-2deg);
+}

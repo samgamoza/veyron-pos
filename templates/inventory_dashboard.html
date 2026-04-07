@@ -6,6 +6,7 @@
     <title>{{ business_name }} Inventory</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>:root{--accent:{{ brand_primary }};--accent-strong:{{ brand_primary }};--warning:{{ brand_accent }};}</style>
+    <script>document.documentElement.dataset.theme=localStorage.getItem('veyron-theme')||'light';</script>
 </head>
 <body class="admin-body">
     <main class="dashboard-shell">
@@ -31,6 +32,7 @@
                 <a href="{{ url_for('logout') }}" class="ghost-link side-launch-link">Logout</a>
             </div>
             <p class="sidebar-note">Inventory handles day-to-day stock control, supplier receiving, periodic counts, and sales reversals.</p>
+            <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
         </aside>
 
         <section class="dashboard-content">
@@ -824,6 +826,19 @@
             document.getElementById('wiz-utilities').addEventListener('input', recalc);
             document.getElementById('wiz-margin-slider').addEventListener('input', recalc);
         })();
+    </script>
+    <script>
+    function toggleTheme(){
+        const t=document.documentElement.dataset.theme==='dark'?'light':'dark';
+        document.documentElement.dataset.theme=t;
+        localStorage.setItem('veyron-theme',t);
+        document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=t==='dark'?'\u2600\uFE0F':'\uD83C\uDF19');
+    }
+    (function(){
+        const t=localStorage.getItem('veyron-theme')||'light';
+        document.documentElement.dataset.theme=t;
+        document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=t==='dark'?'\u2600\uFE0F':'\uD83C\uDF19');
+    })();
     </script>
 </body>
 </html>

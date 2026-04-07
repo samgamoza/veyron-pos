@@ -6,6 +6,7 @@
     <title>{{ business_name }} POS</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>:root{--accent:{{ brand_primary }};--accent-strong:{{ brand_primary }};--warning:{{ brand_accent }};}</style>
+    <script>document.documentElement.dataset.theme=localStorage.getItem('veyron-theme')||'light';</script>
 </head>
 <body class="aurora-body">
     <main class="app-shell pos-shell">
@@ -16,6 +17,7 @@
                 <h1>{{ business_name }}</h1>
                 <p class="hero-text">A front-counter POS designed for cakes, pastries, and Pick-a Pika service with stronger inventory visibility for fast-moving small businesses.</p>
                 <div class="system-access-links">
+                    <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
                     <span class="system-pill">{{ current_user.full_name }} · {{ current_user.role|title }}</span>
                     {% if current_user.role == 'owner' %}<a href="{{ url_for('owner_dashboard') }}" class="ghost-link">Owner</a>{% endif %}
                     <a href="{{ url_for('logout') }}" class="ghost-link">Logout</a>
@@ -442,6 +444,19 @@
                 });
             });
         });
+    </script>
+    <script>
+    function toggleTheme(){
+        const t=document.documentElement.dataset.theme==='dark'?'light':'dark';
+        document.documentElement.dataset.theme=t;
+        localStorage.setItem('veyron-theme',t);
+        document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=t==='dark'?'\u2600\uFE0F':'\uD83C\uDF19');
+    }
+    (function(){
+        const t=localStorage.getItem('veyron-theme')||'light';
+        document.documentElement.dataset.theme=t;
+        document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=t==='dark'?'\u2600\uFE0F':'\uD83C\uDF19');
+    })();
     </script>
 </body>
 </html>
