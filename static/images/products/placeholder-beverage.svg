@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <rect width="200" height="200" rx="24" fill="#F0F7FF"/>
+  <rect x="70" y="50" width="60" height="80" rx="8" fill="#E3F2FD"/>
+  <rect x="70" y="50" width="60" height="80" rx="8" stroke="#90CAF9" stroke-width="3"/>
+  <rect x="60" y="42" width="80" height="12" rx="6" fill="#BBDEFB"/>
+  <circle cx="100" cy="85" r="6" fill="#42A5F5" opacity="0.5"/>
+  <circle cx="88" cy="78" r="4" fill="#42A5F5" opacity="0.4"/>
+  <circle cx="108" cy="95" r="5" fill="#42A5F5" opacity="0.35"/>
+  <line x1="85" y1="45" x2="85" y2="35" stroke="#795548" stroke-width="2" stroke-linecap="round"/>
+  <line x1="100" y1="45" x2="100" y2="30" stroke="#795548" stroke-width="2" stroke-linecap="round"/>
+  <line x1="115" y1="45" x2="115" y2="35" stroke="#795548" stroke-width="2" stroke-linecap="round"/>
+  <text x="100" y="170" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#1565C0" font-weight="600">Beverage</text>
+</svg>

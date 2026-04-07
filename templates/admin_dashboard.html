@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ business_name }} Admin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="admin-body">
+    <main class="dashboard-shell">
+        <aside class="dashboard-sidebar">
+            <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo small">
+            <p class="eyebrow">Admin</p>
+            <h1>{{ business_name }}</h1>
+            <nav class="admin-nav">
+                <button type="button" class="collapsible admin-nav-link active" data-target="products">Products</button>
+                <button type="button" class="collapsible admin-nav-link" data-target="categories">Categories</button>
+                <button type="button" class="collapsible admin-nav-link" data-target="brands">Brands</button>
+                <button type="button" class="collapsible admin-nav-link" data-target="units">Units</button>
+                <button type="button" class="collapsible admin-nav-link" data-target="users">Users</button>
+                <button type="button" class="collapsible admin-nav-link" data-target="audit">Audit</button>
+            </nav>
+            <div class="side-launch-links">
+                {% if current_user and current_user.role == 'owner' %}
+                    <a href="{{ url_for('owner_dashboard') }}" class="ghost-link side-launch-link">Open Owner</a>
+                {% endif %}
+                <a href="{{ url_for('inventory_dashboard') }}" class="open-inventory-link side-launch-link">Open Inventory</a>
+                <a href="{{ url_for('pos') }}" class="pos-launch-link side-launch-link">Go to POS</a>
+                <a href="{{ url_for('logout') }}" class="ghost-link side-launch-link">Logout</a>
+            </div>
+            <p class="sidebar-note">Admin now handles product maintenance, reference setup, staff access, and review of recent system activity.</p>
+        </aside>
+
+        <section class="dashboard-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <section class="flash-stack">
+                        {% for category, message in messages %}
+                            <article class="flash-card {{ category }}">{{ message }}</article>
+                        {% endfor %}
+                    </section>
+                {% endif %}
+            {% endwith %}
+
+            <div class="metrics-grid">
+                <article class="metric-card">
+                    <span>Total products</span>
+                    <strong>{{ metrics.item_count }}</strong>
+                </article>
+                <article class="metric-card">
+                    <span>Categories</span>
+                    <strong>{{ categories|length }}</strong>
+                </article>
+                <article class="metric-card">
+                    <span>Revenue</span>
+                    <strong>{{ metrics.revenue|php }}</strong>
+                </article>
+                <article class="metric-card warning">
+                    <span>Low stock items</span>
+                    <strong>{{ metrics.low_stock_count }}</strong>
+                </article>
+            </div>
+
+            <section class="dashboard-panel" id="products" data-admin-section>
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Products</p>
+                        <h2>Catalog manager</h2>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ url_for('add_product') }}" class="admin-form-grid" enctype="multipart/form-data">
+                    <input type="text" name="name" placeholder="Product Name" required>
+                    <input type="number" step="0.01" min="0" name="price" placeholder="Selling Price" required>
+                    <input type="number" step="0.01" min="0" name="cost" placeholder="Unit Cost" required>
+                    <input type="number" min="0" name="stock" placeholder="Opening Stock" required>
+                    <input type="number" min="0" name="reorder_level" placeholder="Reorder Level" required>
+                    <select name="category_id" required>
+                        <option value="">Select Category</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="brand_id" required>
+                        <option value="">Select Brand</option>
+                        {% for brand in brands %}
+                            <option value="{{ brand.id }}">{{ brand.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="unit_id" required>
+                        <option value="">Select Unit</option>
+                        {% for unit in units %}
+                            <option value="{{ unit.id }}">{{ unit.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="status" required>
+                        <option value="active">Active</option>
+                        <option value="upcoming">Upcoming</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                    <label class="image-upload-label">
+                        <span class="eyebrow">Product Image</span>
+                        <input type="file" name="image" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml">
+                    </label>
+                    <button class="primary-button admin-submit" type="submit">Add Product</button>
+                </form>
+
+                <div class="table-shell admin-table-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Image</th>
+                                <th>Name</th>
+                                <th>SKU</th>
+                                <th>Price</th>
+                                <th>Cost</th>
+                                <th>Stock</th>
+                                <th>Reorder</th>
+                                <th>Status</th>
+                                <th>Category</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in products %}
+                                <tr>
+                                    <td>{{ product.sort_order }}</td>
+                                    <td><img src="{{ url_for('static', filename=get_product_image_url(product.image_path, product.category_name)) }}" alt="{{ product.name }}" class="admin-product-thumb"></td>
+                                    <td>{{ product.name }}</td>
+                                    <td>{{ product.sku }}</td>
+                                    <td>{{ product.price|php }}</td>
+                                    <td>{{ product.cost|php }}</td>
+                                    <td>{{ product.stock }}</td>
+                                    <td>{{ product.reorder_level }}</td>
+                                    <td><span class="status-chip {{ product.status }}">{{ product.status|title }}</span></td>
+                                    <td>{{ product.category_name }}</td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('move_product') }}" class="inline-form move-form">
+                                            <input type="hidden" name="product_id" value="{{ product.id }}">
+                                            <label class="move-label">
+                                                <span>Move to No.</span>
+                                                <input type="number" name="move_to" min="1" value="{{ product.sort_order }}" class="move-input">
+                                            </label>
+                                            <button type="submit" class="ghost-link small-action">Move</button>
+                                        </form>
+                                        <button type="button" class="ghost-link small-action edit-product-button"
+                                            data-product-id="{{ product.id }}"
+                                            data-name="{{ product.name }}"
+                                            data-price="{{ product.price }}"
+                                            data-cost="{{ product.cost }}"
+                                            data-reorder-level="{{ product.reorder_level }}"
+                                            data-category-id="{{ product.category_id if product.category_id is defined else '' }}"
+                                            data-brand-id="{{ product.brand_id if product.brand_id is defined else '' }}"
+                                            data-unit-id="{{ product.unit_id if product.unit_id is defined else '' }}"
+                                            data-status="{{ product.status }}">Edit</button>
+                                        <form method="POST" action="{{ url_for('remove_product') }}" class="inline-form danger-form">
+                                            <input type="hidden" name="product_id" value="{{ product.id }}">
+                                            <button type="submit" class="ghost-link small-action danger-action">Remove</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% if variants_map.get(product.id) %}
+                                    <tr class="variant-sub-row">
+                                        <td></td>
+                                        <td></td>
+                                        <td colspan="9">
+                                            <div class="variant-sub-table">
+                                                <p class="eyebrow">Variants</p>
+                                                <table class="table compact-table">
+                                                    <thead><tr><th>Variant</th><th>SKU Suffix</th><th>Price</th><th>Cost</th><th>Stock</th><th>Reorder</th><th>Status</th><th>Actions</th></tr></thead>
+                                                    <tbody>
+                                                        {% for variant in variants_map[product.id] %}
+                                                            <tr>
+                                                                <td>{{ variant.name }}</td>
+                                                                <td>{{ variant.sku_suffix or '—' }}</td>
+                                                                <td>{{ variant.price|php }}</td>
+                                                                <td>{{ variant.cost|php }}</td>
+                                                                <td>{{ variant.stock }}</td>
+                                                                <td>{{ variant.reorder_level }}</td>
+                                                                <td><span class="status-chip {{ 'active' if variant.is_active else 'inactive' }}">{{ 'Active' if variant.is_active else 'Inactive' }}</span></td>
+                                                                <td>
+                                                                    <button type="button" class="ghost-link small-action edit-variant-button"
+                                                                        data-variant-id="{{ variant.id }}"
+                                                                        data-product-id="{{ product.id }}"
+                                                                        data-name="{{ variant.name }}"
+                                                                        data-price="{{ variant.price }}"
+                                                                        data-cost="{{ variant.cost }}"
+                                                                        data-reorder-level="{{ variant.reorder_level }}"
+                                                                        data-sku-suffix="{{ variant.sku_suffix }}"
+                                                                        data-is-active="{{ variant.is_active }}">Edit</button>
+                                                                    <form method="POST" action="{{ url_for('remove_variant') }}" class="inline-form danger-form">
+                                                                        <input type="hidden" name="variant_id" value="{{ variant.id }}">
+                                                                        <button type="submit" class="ghost-link small-action danger-action">Remove</button>
+                                                                    </form>
+                                                                </td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% else %}
+                                <tr><td colspan="11">No products recorded yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <article class="dashboard-subpanel product-editor-panel">
+                    <div class="section-heading compact">
+                        <div>
+                            <p class="eyebrow">Product maintenance</p>
+                            <h3>Edit existing product</h3>
+                        </div>
+                    </div>
+                    <form method="POST" action="{{ url_for('update_product') }}" class="admin-form-grid editor-grid" id="product-editor-form" enctype="multipart/form-data">
+                        <select name="product_id" id="edit-product-id" required>
+                            <option value="">Select Product</option>
+                            {% for product in products %}
+                                <option value="{{ product.id }}" data-name="{{ product.name }}" data-price="{{ product.price }}" data-cost="{{ product.cost }}" data-reorder-level="{{ product.reorder_level }}" data-category-id="{{ product.category_id if product.category_id is defined else '' }}" data-brand-id="{{ product.brand_id if product.brand_id is defined else '' }}" data-unit-id="{{ product.unit_id if product.unit_id is defined else '' }}" data-status="{{ product.status }}" data-image-path="{{ product.image_path or '' }}">{{ product.name }} · {{ product.sku }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="text" name="name" id="edit-name" placeholder="Product Name" required>
+                        <input type="number" step="0.01" min="0" name="price" id="edit-price" placeholder="Selling Price" required>
+                        <input type="number" step="0.01" min="0" name="cost" id="edit-cost" placeholder="Unit Cost" required>
+                        <input type="number" min="0" name="reorder_level" id="edit-reorder-level" placeholder="Reorder Level" required>
+                        <select name="category_id" id="edit-category-id" required>
+                            <option value="">Select Category</option>
+                            {% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}
+                        </select>
+                        <select name="brand_id" id="edit-brand-id" required>
+                            <option value="">Select Brand</option>
+                            {% for brand in brands %}<option value="{{ brand.id }}">{{ brand.name }}</option>{% endfor %}
+                        </select>
+                        <select name="unit_id" id="edit-unit-id" required>
+                            <option value="">Select Unit</option>
+                            {% for unit in units %}<option value="{{ unit.id }}">{{ unit.name }}</option>{% endfor %}
+                        </select>
+                        <select name="status" id="edit-status" required>
+                            <option value="active">Active</option>
+                            <option value="upcoming">Upcoming</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                        <label class="image-upload-label">
+                            <span class="eyebrow">Replace Image</span>
+                            <input type="file" name="image" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml">
+                            <img id="edit-image-preview" class="admin-product-thumb edit-preview" src="" alt="" hidden>
+                        </label>
+                        <button class="primary-button admin-submit" type="submit">Update Product</button>
+                    </form>
+                </article>
+
+                <article class="dashboard-subpanel variant-add-panel">
+                    <div class="section-heading compact">
+                        <div>
+                            <p class="eyebrow">Variants</p>
+                            <h3>Add variant to a product</h3>
+                        </div>
+                    </div>
+                    <form method="POST" action="{{ url_for('add_variant') }}" class="admin-form-grid editor-grid">
+                        <select name="product_id" required>
+                            <option value="">Select Product</option>
+                            {% for product in products %}
+                                <option value="{{ product.id }}">{{ product.name }} · {{ product.sku }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="text" name="variant_name" placeholder="Variant Name (e.g. Slice, Whole, Small)" required>
+                        <input type="text" name="variant_sku_suffix" placeholder="SKU Suffix (e.g. -SL, -WH)">
+                        <input type="number" step="0.01" min="0" name="variant_price" placeholder="Selling Price" required>
+                        <input type="number" step="0.01" min="0" name="variant_cost" placeholder="Unit Cost" required>
+                        <input type="number" min="0" name="variant_stock" placeholder="Opening Stock" required>
+                        <input type="number" min="0" name="variant_reorder_level" placeholder="Reorder Level" required>
+                        <button class="primary-button admin-submit" type="submit">Add Variant</button>
+                    </form>
+                </article>
+
+                <article class="dashboard-subpanel variant-editor-panel">
+                    <div class="section-heading compact">
+                        <div>
+                            <p class="eyebrow">Variant maintenance</p>
+                            <h3>Edit existing variant</h3>
+                        </div>
+                    </div>
+                    <form method="POST" action="{{ url_for('update_variant') }}" class="admin-form-grid editor-grid" id="variant-editor-form">
+                        <select name="variant_id" id="edit-variant-id" required>
+                            <option value="">Select Variant</option>
+                            {% for variant in all_variants %}
+                                <option value="{{ variant.id }}"
+                                    data-product-id="{{ variant.product_id }}"
+                                    data-name="{{ variant.name }}"
+                                    data-price="{{ variant.price }}"
+                                    data-cost="{{ variant.cost }}"
+                                    data-reorder-level="{{ variant.reorder_level }}"
+                                    data-sku-suffix="{{ variant.sku_suffix }}"
+                                    data-is-active="{{ variant.is_active }}">{{ variant.name }} (Variant #{{ variant.id }})</option>
+                            {% endfor %}
+                        </select>
+                        <input type="text" name="variant_name" id="edit-variant-name" placeholder="Variant Name" required>
+                        <input type="text" name="variant_sku_suffix" id="edit-variant-sku-suffix" placeholder="SKU Suffix">
+                        <input type="number" step="0.01" min="0" name="variant_price" id="edit-variant-price" placeholder="Selling Price" required>
+                        <input type="number" step="0.01" min="0" name="variant_cost" id="edit-variant-cost" placeholder="Unit Cost" required>
+                        <input type="number" min="0" name="variant_reorder_level" id="edit-variant-reorder-level" placeholder="Reorder Level" required>
+                        <select name="variant_is_active" id="edit-variant-is-active">
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
+                        <button class="primary-button admin-submit" type="submit">Update Variant</button>
+                    </form>
+                </article>
+            </section>
+
+            <section class="dashboard-panel admin-section-card" id="categories" data-admin-section hidden>
+                <div class="section-heading"><div><p class="eyebrow">Categories</p><h2>Product grouping</h2></div></div>
+                <form method="POST" action="{{ url_for('add_category') }}" class="admin-inline-form">
+                    <input type="text" name="name" placeholder="Category Name" required>
+                    <button class="primary-button" type="submit">Add Category</button>
+                </form>
+                <div class="table-shell admin-table-wrap compact-table">
+                    <table class="table">
+                        <thead><tr><th>No.</th><th>Name</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            {% for category in categories %}
+                                <tr>
+                                    <td>{{ category.sort_order }}</td>
+                                    <td>{{ category.name }}</td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('move_category') }}" class="inline-form move-form">
+                                            <input type="hidden" name="category_id" value="{{ category.id }}">
+                                            <label class="move-label"><span>Move to No.</span><input type="number" name="move_to" min="1" value="{{ category.sort_order }}" class="move-input"></label>
+                                            <button type="submit" class="ghost-link small-action">Move</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr><td colspan="3">No categories available.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="dashboard-panel admin-section-card" id="brands" data-admin-section hidden>
+                <div class="section-heading"><div><p class="eyebrow">Brands</p><h2>Supplier labels</h2></div></div>
+                <form method="POST" action="{{ url_for('add_brand') }}" class="admin-inline-form">
+                    <input type="text" name="name" placeholder="Brand Name" required>
+                    <button class="primary-button" type="submit">Add Brand</button>
+                </form>
+                <div class="table-shell admin-table-wrap compact-table"><table class="table"><thead><tr><th>ID</th><th>Name</th></tr></thead><tbody>{% for brand in brands %}<tr><td>{{ brand.id }}</td><td>{{ brand.name }}</td></tr>{% else %}<tr><td colspan="2">No brands available.</td></tr>{% endfor %}</tbody></table></div>
+            </section>
+
+            <section class="dashboard-panel admin-section-card" id="units" data-admin-section hidden>
+                <div class="section-heading"><div><p class="eyebrow">Units</p><h2>Serving measures</h2></div></div>
+                <form method="POST" action="{{ url_for('add_unit') }}" class="admin-inline-form">
+                    <input type="text" name="name" placeholder="Unit Name" required>
+                    <button class="primary-button" type="submit">Add Unit</button>
+                </form>
+                <div class="table-shell admin-table-wrap compact-table"><table class="table"><thead><tr><th>ID</th><th>Name</th></tr></thead><tbody>{% for unit in units %}<tr><td>{{ unit.id }}</td><td>{{ unit.name }}</td></tr>{% else %}<tr><td colspan="2">No units available.</td></tr>{% endfor %}</tbody></table></div>
+            </section>
+
+            <section class="dashboard-panel admin-section-card" id="users" data-admin-section hidden>
+                <div class="section-heading"><div><p class="eyebrow">Users</p><h2>Cashier and admin access</h2></div></div>
+                {% if current_user and current_user.role == 'owner' %}
+                    <form method="POST" action="{{ url_for('add_user') }}" class="admin-form-grid user-form-grid">
+                        <input type="text" name="full_name" placeholder="Full Name" required>
+                        <input type="text" name="username" placeholder="Username" required>
+                        <select name="role" required>
+                            <option value="cashier">Cashier</option>
+                            <option value="admin">Admin</option>
+                            <option value="owner">Owner</option>
+                        </select>
+                        <input type="password" name="pin" placeholder="PIN" required>
+                        <button class="primary-button" type="submit">Add User</button>
+                    </form>
+                {% else %}
+                    <article class="dashboard-subpanel"><p class="panel-note">Only the owner can create or manage users.</p></article>
+                {% endif %}
+                <div class="table-shell admin-table-wrap compact-table">
+                    <table class="table">
+                        <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Last Login</th></tr></thead>
+                        <tbody>
+                            {% for user in users %}
+                                <tr><td>{{ user.full_name }}</td><td>{{ user.username }}</td><td><span class="status-chip">{{ user.role|title }}</span></td><td>{{ 'Active' if user.is_active else 'Inactive' }}</td><td>{{ user.last_login or 'Never' }}</td></tr>
+                            {% else %}
+                                <tr><td colspan="5">No users available.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="dashboard-panel admin-section-card" id="audit" data-admin-section hidden>
+                <div class="section-heading"><div><p class="eyebrow">Audit</p><h2>Recent activity trail</h2></div></div>
+                <div class="table-shell compact-table admin-table-wrap">
+                    <table class="table">
+                        <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Entity</th><th>Details</th></tr></thead>
+                        <tbody>
+                            {% for log in audit_logs %}
+                                <tr><td>{{ log.created_at }}</td><td>{{ log.actor_name }} · {{ log.actor_role|title }}</td><td>{{ log.action|replace('_', ' ')|title }}</td><td>{{ log.entity_type|replace('_', ' ')|title }}{% if log.entity_id %} #{{ log.entity_id }}{% endif %}</td><td>{{ log.details }}</td></tr>
+                            {% else %}
+                                <tr><td colspan="5">No audit entries yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="dashboard-panel split admin-ops-panel">
+                <article>
+                    <p class="eyebrow">Recent sales</p>
+                    <h2>Latest receipts</h2>
+                    <div class="table-shell compact-table admin-table-wrap" style="margin-top: 1rem;">
+                        <table>
+                            <thead><tr><th>Receipt</th><th>Time</th><th>Payment</th><th>Status</th><th>Total</th></tr></thead>
+                            <tbody>
+                                {% for sale in metrics.recent_sales %}
+                                    <tr><td>#{{ sale.id }}</td><td>{{ sale.created_at }}</td><td>{{ sale.payment_method }}</td><td><span class="status-chip {{ sale.status }}">{{ sale.status|title }}</span></td><td>{{ sale.total|php }}</td></tr>
+                                {% else %}
+                                    <tr><td colspan="5">No sales recorded yet.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="stock-summary">
+                    <p class="eyebrow">Menu mix</p>
+                    <h2>{{ metrics.units_in_stock }} units on hand</h2>
+                    <p>{{ metrics.item_count }} products tracked across {{ metrics.category_mix|length }} categories.</p>
+                    <div class="mix-list">
+                        {% for category in metrics.category_mix %}
+                            <div><span>{{ category.name }}</span><strong>{{ category.product_count }}</strong></div>
+                        {% endfor %}
+                    </div>
+                </article>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        const navButtons = document.querySelectorAll('.admin-nav-link');
+        const sections = document.querySelectorAll('[data-admin-section]');
+        const editButtons = document.querySelectorAll('.edit-product-button');
+        const editorSelect = document.getElementById('edit-product-id');
+
+        function fillEditorFromOption(option) {
+            if (!option || !option.value) {
+                return;
+            }
+            document.getElementById('edit-name').value = option.dataset.name || '';
+            document.getElementById('edit-price').value = option.dataset.price || '';
+            document.getElementById('edit-cost').value = option.dataset.cost || '';
+            document.getElementById('edit-reorder-level').value = option.dataset.reorderLevel || '';
+            document.getElementById('edit-category-id').value = option.dataset.categoryId || '';
+            document.getElementById('edit-brand-id').value = option.dataset.brandId || '';
+            document.getElementById('edit-unit-id').value = option.dataset.unitId || '';
+            document.getElementById('edit-status').value = option.dataset.status || 'active';
+            const preview = document.getElementById('edit-image-preview');
+            const imagePath = option.dataset.imagePath;
+            if (imagePath && preview) {
+                preview.src = '/static/' + imagePath;
+                preview.hidden = false;
+            } else if (preview) {
+                preview.hidden = true;
+            }
+        }
+
+        function activateSection(targetId) {
+            sections.forEach((section) => {
+                section.hidden = section.id !== targetId;
+            });
+            navButtons.forEach((button) => {
+                button.classList.toggle('active', button.dataset.target === targetId);
+            });
+        }
+
+        navButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const targetId = button.dataset.target;
+                activateSection(targetId);
+                history.replaceState(null, '', `#${targetId}`);
+            });
+        });
+
+        editButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const option = editorSelect.querySelector(`option[value="${button.dataset.productId}"]`);
+                if (option) {
+                    editorSelect.value = option.value;
+                    fillEditorFromOption(option);
+                    activateSection('products');
+                    history.replaceState(null, '', '#products');
+                    document.getElementById('product-editor-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        if (editorSelect) {
+            editorSelect.addEventListener('change', () => {
+                const selectedOption = editorSelect.options[editorSelect.selectedIndex];
+                fillEditorFromOption(selectedOption);
+            });
+        }
+
+        const hashTarget = window.location.hash ? window.location.hash.slice(1) : 'products';
+        const defaultTarget = document.getElementById(hashTarget) ? hashTarget : 'products';
+        activateSection(defaultTarget);
+
+        const editVariantButtons = document.querySelectorAll('.edit-variant-button');
+        const variantEditorSelect = document.getElementById('edit-variant-id');
+
+        function fillVariantEditorFromOption(option) {
+            if (!option || !option.value) return;
+            document.getElementById('edit-variant-name').value = option.dataset.name || '';
+            document.getElementById('edit-variant-price').value = option.dataset.price || '';
+            document.getElementById('edit-variant-cost').value = option.dataset.cost || '';
+            document.getElementById('edit-variant-reorder-level').value = option.dataset.reorderLevel || '';
+            document.getElementById('edit-variant-sku-suffix').value = option.dataset.skuSuffix || '';
+            document.getElementById('edit-variant-is-active').value = option.dataset.isActive || '1';
+        }
+
+        editVariantButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const option = variantEditorSelect.querySelector(`option[value="${button.dataset.variantId}"]`);
+                if (option) {
+                    variantEditorSelect.value = option.value;
+                    fillVariantEditorFromOption(option);
+                    activateSection('products');
+                    history.replaceState(null, '', '#products');
+                    document.getElementById('variant-editor-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        if (variantEditorSelect) {
+            variantEditorSelect.addEventListener('change', () => {
+                const selectedOption = variantEditorSelect.options[variantEditorSelect.selectedIndex];
+                fillVariantEditorFromOption(selectedOption);
+            });
+        }
+    </script>
+</body>
+</html>

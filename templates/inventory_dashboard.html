@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ business_name }} Inventory</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="admin-body">
+    <main class="dashboard-shell">
+        <aside class="dashboard-sidebar">
+            <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo small">
+            <p class="eyebrow">Inventory</p>
+            <h1>{{ business_name }}</h1>
+            <nav class="admin-nav">
+                <button type="button" class="collapsible admin-nav-link active" data-target="stock-control">Stock Control</button>
+                <button type="button" class="collapsible admin-nav-link" data-target="suppliers">Suppliers</button>
+                <button type="button" class="collapsible admin-nav-link" data-target="purchase-orders">Purchase Orders</button>
+                <button type="button" class="collapsible admin-nav-link" data-target="stock-counts">Stock Counts</button>
+                <button type="button" class="collapsible admin-nav-link" data-target="sales-controls">Refunds / Voids</button>
+                <button type="button" class="collapsible admin-nav-link" data-target="reports">Reports</button>
+            </nav>
+            <div class="side-launch-links">
+                {% if current_user and current_user.role == 'owner' %}
+                    <a href="{{ url_for('owner_dashboard') }}" class="ghost-link side-launch-link">Open Owner</a>
+                {% endif %}
+                <a href="{{ url_for('admin_dashboard') }}" class="open-admin-link side-launch-link">Open Admin</a>
+                <a href="{{ url_for('pos') }}" class="pos-launch-link side-launch-link">Go to POS</a>
+                <a href="{{ url_for('logout') }}" class="ghost-link side-launch-link">Logout</a>
+            </div>
+            <p class="sidebar-note">Inventory handles day-to-day stock control, supplier receiving, periodic counts, and sales reversals.</p>
+        </aside>
+
+        <section class="dashboard-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <section class="flash-stack">
+                        {% for category, message in messages %}
+                            <article class="flash-card {{ category }}">{{ message }}</article>
+                        {% endfor %}
+                    </section>
+                {% endif %}
+            {% endwith %}
+
+            <div class="metrics-grid">
+                <article class="metric-card"><span>Units on hand</span><strong>{{ metrics.units_in_stock }}</strong></article>
+                <article class="metric-card warning"><span>Low stock items</span><strong>{{ metrics.low_stock_count }}</strong></article>
+                <article class="metric-card warning"><span>Out of stock</span><strong>{{ metrics.out_of_stock_count }}</strong></article>
+                <article class="metric-card"><span>Receipts</span><strong>{{ metrics.receipt_count }}</strong></article>
+            </div>
+
+            <section class="dashboard-panel admin-section-card" id="stock-control" data-inventory-section>
+                <div class="section-heading"><div><p class="eyebrow">Inventory</p><h2>Stock control center</h2></div></div>
+                <div class="inventory-summary-grid">
+                    <article class="inventory-summary-card"><span>Inventory cost</span><strong>{{ metrics.inventory_cost_value|php }}</strong></article>
+                    <article class="inventory-summary-card"><span>Inventory retail</span><strong>{{ metrics.inventory_retail_value|php }}</strong></article>
+                    <article class="inventory-summary-card"><span>Upcoming items</span><strong>{{ metrics.upcoming_count }}</strong></article>
+                    <article class="inventory-summary-card"><span>Tracked products</span><strong>{{ metrics.item_count }}</strong></article>
+                </div>
+                <div class="inventory-workbench">
+                    <form method="POST" action="{{ url_for('adjust_inventory') }}" class="inventory-adjust-form">
+                        <p class="eyebrow">Stock adjustment</p>
+                        <h3>Record restocks and count corrections</h3>
+                        <select name="product_id" id="adjust-product-select" required>
+                            <option value="">Select Product</option>
+                            {% for product in active_products %}<option value="{{ product.id }}" data-has-variants="{{ 'yes' if variants_map.get(product.id) else 'no' }}">{{ product.name }} · {{ product.sku }} · {{ product.stock }} on hand</option>{% endfor %}
+                        </select>
+                        <select name="variant_id" id="adjust-variant-select">
+                            <option value="">No variant (base product)</option>
+                            {% for product in active_products %}
+                                {% if variants_map.get(product.id) %}
+                                    {% for variant in variants_map[product.id] %}
+                                        <option value="{{ variant.id }}" data-product-id="{{ product.id }}" class="variant-option" hidden>{{ variant.name }} · {{ variant.stock }} on hand</option>
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <input type="number" name="quantity_change" placeholder="Adjustment quantity, e.g. 12 or -2" required>
+                        <select name="reason" required>
+                            <option value="restock">Restock</option>
+                            <option value="manual_count">Manual Count</option>
+                            <option value="damaged">Damaged</option>
+                            <option value="wastage">Wastage</option>
+                        </select>
+                        <button class="primary-button" type="submit">Save inventory movement</button>
+                    </form>
+                    <article class="dashboard-subpanel">
+                        <p class="eyebrow">Critical items</p>
+                        <h3>Needs replenishment</h3>
+                        <div class="table-shell compact-table admin-table-wrap">
+                            <table class="table">
+                                <thead><tr><th>Item</th><th>Category</th><th>Stock</th><th>Reorder</th></tr></thead>
+                                <tbody>
+                                    {% for item in inventory_watchlist %}<tr><td>{{ item.name }}</td><td>{{ item.category_name }}</td><td>{{ item.stock }}</td><td>{{ item.reorder_level }}</td></tr>{% else %}<tr><td colspan="4">No critical stock alerts.</td></tr>{% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+                </div>
+                <div class="table-shell compact-table admin-table-wrap">
+                    <table class="table">
+                        <thead><tr><th>Time</th><th>Item</th><th>Reason</th><th>Change</th><th>Current Stock</th></tr></thead>
+                        <tbody>
+                            {% for movement in recent_movements %}<tr><td>{{ movement.created_at }}</td><td>{{ movement.name }} · {{ movement.sku }}</td><td>{{ movement.reason|replace('_', ' ')|title }}</td><td class="{% if movement.quantity_change < 0 %}negative{% else %}positive{% endif %}">{{ movement.quantity_change }}</td><td>{{ movement.stock }}</td></tr>{% else %}<tr><td colspan="5">No stock movements recorded yet.</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="dashboard-panel admin-section-card" id="suppliers" data-inventory-section hidden>
+                <div class="section-heading"><div><p class="eyebrow">Suppliers</p><h2>Supplier directory</h2></div></div>
+                <form method="POST" action="{{ url_for('add_supplier') }}" class="supplier-form-grid">
+                    <input type="text" name="name" placeholder="Supplier Name" required>
+                    <input type="text" name="contact_person" placeholder="Contact Person">
+                    <input type="text" name="phone" placeholder="Phone">
+                    <input type="email" name="email" placeholder="Email">
+                    <input type="text" name="notes" placeholder="Notes or lead time">
+                    <button type="submit" class="primary-button">Add Supplier</button>
+                </form>
+                <div class="table-shell compact-table admin-table-wrap"><table class="table"><thead><tr><th>Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>Status</th></tr></thead><tbody>{% for supplier in suppliers %}<tr><td>{{ supplier.name }}</td><td>{{ supplier.contact_person or '—' }}</td><td>{{ supplier.phone or '—' }}</td><td>{{ supplier.email or '—' }}</td><td>{{ 'Active' if supplier.is_active else 'Inactive' }}</td></tr>{% else %}<tr><td colspan="5">No suppliers available.</td></tr>{% endfor %}</tbody></table></div>
+            </section>
+
+            <section class="dashboard-panel admin-section-card" id="purchase-orders" data-inventory-section hidden>
+                <div class="section-heading"><div><p class="eyebrow">Purchasing</p><h2>Purchase orders and receiving</h2></div></div>
+                <div class="inventory-workbench wide-workbench">
+                    <form method="POST" action="{{ url_for('add_purchase_order') }}" class="inventory-adjust-form">
+                        <p class="eyebrow">New PO</p>
+                        <h3>Create a quick purchase order</h3>
+                        <select name="supplier_id" required>
+                            <option value="">Select Supplier</option>
+                            {% for supplier in suppliers %}{% if supplier.is_active %}<option value="{{ supplier.id }}">{{ supplier.name }}</option>{% endif %}{% endfor %}
+                        </select>
+                        <select name="product_id" required>
+                            <option value="">Select Product</option>
+                            {% for product in active_products %}<option value="{{ product.id }}">{{ product.name }} · {{ product.sku }}</option>{% endfor %}
+                        </select>
+                        <input type="number" min="1" name="ordered_quantity" placeholder="Ordered quantity" required>
+                        <input type="number" min="0" step="0.01" name="unit_cost" placeholder="Unit cost" required>
+                        <input type="text" name="notes" placeholder="PO note">
+                        <button type="submit" class="primary-button">Create purchase order</button>
+                    </form>
+                    <article class="dashboard-subpanel">
+                        <p class="eyebrow">Receive PO</p>
+                        <h3>Post received stock</h3>
+                        <form method="POST" action="{{ url_for('receive_purchase_order') }}" class="admin-inline-form stacked-inline-form">
+                            <select name="purchase_order_id" required>
+                                <option value="">Select Purchase Order</option>
+                                {% for order in purchase_orders %}
+                                    {% if order.status != 'received' %}
+                                        <option value="{{ order.id }}">PO #{{ order.id }} · {{ order.supplier_name }} · {{ order.product_name }} · {{ order.received_quantity }}/{{ order.ordered_quantity }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <input type="number" min="1" name="received_quantity" placeholder="Received quantity" required>
+                            <button type="submit" class="primary-button">Receive stock</button>
+                        </form>
+                    </article>
+                </div>
+                <div class="table-shell compact-table admin-table-wrap">
+                    <table class="table"><thead><tr><th>PO</th><th>Supplier</th><th>Product</th><th>Ordered</th><th>Received</th><th>Cost</th><th>Status</th></tr></thead><tbody>{% for order in purchase_orders %}<tr><td>#{{ order.id }}</td><td>{{ order.supplier_name }}</td><td>{{ order.product_name }}</td><td>{{ order.ordered_quantity }}</td><td>{{ order.received_quantity }}</td><td>{{ order.unit_cost|php }}</td><td><span class="status-chip {{ order.status }}">{{ order.status|title }}</span></td></tr>{% else %}<tr><td colspan="7">No purchase orders yet.</td></tr>{% endfor %}</tbody></table>
+                </div>
+            </section>
+
+            <section class="dashboard-panel admin-section-card" id="stock-counts" data-inventory-section hidden>
+                <div class="section-heading"><div><p class="eyebrow">Stock Count</p><h2>Physical count and variance</h2></div>
+                    <form method="POST" action="{{ url_for('create_stock_count') }}"><input type="hidden" name="title" value="Cycle Count"><button type="submit" class="primary-button">Start stock count</button></form>
+                </div>
+                {% if open_stock_count %}
+                    <article class="dashboard-subpanel">
+                        <p class="eyebrow">Open count</p>
+                        <h3>{{ open_stock_count.title }} · {{ open_stock_count.created_at }}</h3>
+                        <form method="POST" action="{{ url_for('complete_stock_count') }}" class="count-form-grid">
+                            <input type="hidden" name="stock_count_id" value="{{ open_stock_count.id }}">
+                            <div class="table-shell compact-table admin-table-wrap">
+                                <table class="table">
+                                    <thead><tr><th>Item</th><th>System</th><th>Counted</th></tr></thead>
+                                    <tbody>
+                                        {% for item in stock_count_items %}
+                                            <tr>
+                                                <td>{{ item.name }} · {{ item.sku }}</td>
+                                                <td>{{ item.system_stock }}</td>
+                                                <td><input type="number" min="0" name="counted_{{ item.id }}" value="{{ item.system_stock if item.counted_stock is none else item.counted_stock }}"></td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button type="submit" class="primary-button">Complete stock count</button>
+                        </form>
+                    </article>
+                {% else %}
+                    <article class="dashboard-subpanel"><p class="panel-note">No open stock count. Start one before doing a physical count and variance reconciliation.</p></article>
+                {% endif %}
+            </section>
+
+            <section class="dashboard-panel admin-section-card" id="sales-controls" data-inventory-section hidden>
+                <div class="section-heading"><div><p class="eyebrow">Sales Controls</p><h2>Void, refund, and return-equivalent stock recovery</h2></div></div>
+                <div class="table-shell compact-table admin-table-wrap">
+                    <table class="table">
+                        <thead><tr><th>Receipt</th><th>Cashier</th><th>Discount</th><th>Status</th><th>Total</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            {% for sale in sales_controls %}
+                                <tr>
+                                    <td>#{{ sale.id }} · {{ sale.created_at }}</td>
+                                    <td>{{ sale.cashier_name }}</td>
+                                    <td>{{ sale.discount_type|replace('_', ' ')|title }}{% if sale.discount_amount %} ({{ sale.discount_amount|php }}){% endif %}</td>
+                                    <td><span class="status-chip {{ sale.status }}">{{ sale.status|title }}</span></td>
+                                    <td>{{ sale.total|php }}</td>
+                                    <td>
+                                        {% if sale.status == 'completed' %}
+                                            <form method="POST" action="{{ url_for('void_sale') }}" class="inline-form danger-form"><input type="hidden" name="sale_id" value="{{ sale.id }}"><button type="submit" class="ghost-link small-action danger-action">Void</button></form>
+                                            <form method="POST" action="{{ url_for('refund_sale') }}" class="inline-form danger-form"><input type="hidden" name="sale_id" value="{{ sale.id }}"><button type="submit" class="ghost-link small-action">Refund</button></form>
+                                        {% else %}
+                                            <span class="panel-note">Closed</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr><td colspan="6">No sales available.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="dashboard-panel admin-section-card" id="reports" data-inventory-section hidden>
+                <div class="section-heading"><div><p class="eyebrow">Reports</p><h2>After-sales inventory reporting</h2></div></div>
+                <div class="inventory-summary-grid">
+                    <article class="inventory-summary-card"><span>Today revenue</span><strong>{{ reports.summary.today_revenue|php }}</strong></article>
+                    <article class="inventory-summary-card"><span>Today receipts</span><strong>{{ reports.summary.today_receipts }}</strong></article>
+                    <article class="inventory-summary-card"><span>This month revenue</span><strong>{{ reports.summary.month_revenue|php }}</strong></article>
+                    <article class="inventory-summary-card"><span>This month receipts</span><strong>{{ reports.summary.month_receipts }}</strong></article>
+                </div>
+                <article class="dashboard-subpanel period-summary-panel">
+                    <p class="eyebrow">Current periods</p><h3>Daily, weekly, monthly, yearly inventory impact</h3>
+                    <div class="report-period-grid">{% for period in reports.current_periods %}<article class="period-card"><span>{{ period.title }}</span><strong>{{ period.label }}</strong><p>Sales: {{ period.sales_value|php }}</p><p>Units sold: {{ period.units_sold }}</p><p>Gross profit: {{ period.gross_profit|php }}</p><p>Stock in: {{ period.stock_in }}</p><p>Stock out: {{ period.stock_out_total }}</p><p>Net stock movement: {{ period.net_stock_movement }}</p></article>{% endfor %}</div>
+                </article>
+                <section class="dashboard-panel split reports-grid-shell no-pad report-table-grid">
+                    <article class="dashboard-subpanel"><p class="eyebrow">Daily</p><h3>Last 14 days</h3><div class="table-shell compact-table admin-table-wrap"><table class="table"><thead><tr><th>Period</th><th>Receipts</th><th>Revenue</th><th>Gross Profit</th><th>Sold</th><th>Stock In</th><th>Stock Out</th></tr></thead><tbody>{% for row in reports.daily_inventory %}<tr><td>{{ row.period_key }}</td><td>{{ row.receipt_count }}</td><td>{{ row.sales_value|php }}</td><td>{{ row.gross_profit|php }}</td><td>{{ row.units_sold }}</td><td>{{ row.stock_in + row.count_gain }}</td><td>{{ row.stock_out_total }}</td></tr>{% else %}<tr><td colspan="7">No daily inventory activity yet.</td></tr>{% endfor %}</tbody></table></div></article>
+                    <article class="dashboard-subpanel"><p class="eyebrow">Weekly</p><h3>Last 12 weeks</h3><div class="table-shell compact-table admin-table-wrap"><table class="table"><thead><tr><th>Period</th><th>Receipts</th><th>Revenue</th><th>Gross Profit</th><th>Sold</th><th>Stock In</th><th>Stock Out</th></tr></thead><tbody>{% for row in reports.weekly_inventory %}<tr><td>{{ row.period_key }}</td><td>{{ row.receipt_count }}</td><td>{{ row.sales_value|php }}</td><td>{{ row.gross_profit|php }}</td><td>{{ row.units_sold }}</td><td>{{ row.stock_in + row.count_gain }}</td><td>{{ row.stock_out_total }}</td></tr>{% else %}<tr><td colspan="7">No weekly inventory activity yet.</td></tr>{% endfor %}</tbody></table></div></article>
+                </section>
+                <section class="dashboard-panel split reports-grid-shell no-pad report-table-grid">
+                    <article class="dashboard-subpanel"><p class="eyebrow">Monthly</p><h3>Last 12 months</h3><div class="table-shell compact-table admin-table-wrap"><table class="table"><thead><tr><th>Period</th><th>Receipts</th><th>Revenue</th><th>Gross Profit</th><th>Sold</th><th>Stock In</th><th>Stock Out</th></tr></thead><tbody>{% for row in reports.monthly_inventory %}<tr><td>{{ row.period_key }}</td><td>{{ row.receipt_count }}</td><td>{{ row.sales_value|php }}</td><td>{{ row.gross_profit|php }}</td><td>{{ row.units_sold }}</td><td>{{ row.stock_in + row.count_gain }}</td><td>{{ row.stock_out_total }}</td></tr>{% else %}<tr><td colspan="7">No monthly inventory activity yet.</td></tr>{% endfor %}</tbody></table></div></article>
+                    <article class="dashboard-subpanel"><p class="eyebrow">Yearly</p><h3>Last years</h3><div class="table-shell compact-table admin-table-wrap"><table class="table"><thead><tr><th>Period</th><th>Receipts</th><th>Revenue</th><th>Gross Profit</th><th>Sold</th><th>Stock In</th><th>Stock Out</th></tr></thead><tbody>{% for row in reports.yearly_inventory %}<tr><td>{{ row.period_key }}</td><td>{{ row.receipt_count }}</td><td>{{ row.sales_value|php }}</td><td>{{ row.gross_profit|php }}</td><td>{{ row.units_sold }}</td><td>{{ row.stock_in + row.count_gain }}</td><td>{{ row.stock_out_total }}</td></tr>{% else %}<tr><td colspan="7">No yearly inventory activity yet.</td></tr>{% endfor %}</tbody></table></div></article>
+                </section>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        const navButtons = document.querySelectorAll('.admin-nav-link');
+        const sections = document.querySelectorAll('[data-inventory-section]');
+
+        function activateSection(targetId) {
+            sections.forEach((section) => {
+                section.hidden = section.id !== targetId;
+            });
+            navButtons.forEach((button) => {
+                button.classList.toggle('active', button.dataset.target === targetId);
+            });
+        }
+
+        navButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const targetId = button.dataset.target;
+                activateSection(targetId);
+                history.replaceState(null, '', `#${targetId}`);
+            });
+        });
+
+        const hashTarget = window.location.hash ? window.location.hash.slice(1) : 'stock-control';
+        const defaultTarget = document.getElementById(hashTarget) ? hashTarget : 'stock-control';
+        activateSection(defaultTarget);
+
+        const productSelect = document.getElementById('adjust-product-select');
+        const variantSelect = document.getElementById('adjust-variant-select');
+
+        if (productSelect && variantSelect) {
+            productSelect.addEventListener('change', () => {
+                const selectedProductId = productSelect.value;
+                const hasVariants = productSelect.options[productSelect.selectedIndex]?.dataset?.hasVariants === 'yes';
+
+                Array.from(variantSelect.querySelectorAll('.variant-option')).forEach((opt) => {
+                    opt.hidden = opt.dataset.productId !== selectedProductId;
+                });
+
+                variantSelect.value = '';
+                variantSelect.style.display = hasVariants ? '' : 'none';
+            });
+
+            variantSelect.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

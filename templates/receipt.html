@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ business_name }} Receipt #{{ sale.id }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="receipt-body">
+    <main class="receipt-shell">
+        <section class="receipt-card">
+            <div class="receipt-actions no-print">
+                <button type="button" class="primary-button" id="print-receipt-button">Print receipt</button>
+            </div>
+
+            <header class="receipt-header">
+                <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo small">
+                <div>
+                    <p class="eyebrow">Receipt</p>
+                    <h1>Order #{{ sale.id }}</h1>
+                    <p>{{ business_name }} · {{ sale.created_at }} · {{ sale.payment_method }} · {{ sale.status|title }}</p>
+                </div>
+            </header>
+
+            <div class="receipt-items">
+                {% for item in items %}
+                    <article class="receipt-line">
+                        <div>
+                            <h2>{{ item.name }}{% if item.variant_name %} ({{ item.variant_name }}){% endif %}</h2>
+                            <p>{{ item.sku }}{% if item.variant_sku_suffix %}{{ item.variant_sku_suffix }}{% endif %} · {{ item.quantity }} x {{ item.unit_price|php }}</p>
+                        </div>
+                        <strong>{{ item.line_total|php }}</strong>
+                    </article>
+                {% endfor %}
+            </div>
+
+            <div class="totals-card">
+                <div><span>Subtotal</span><strong>{{ sale.subtotal|php }}</strong></div>
+                {% if sale.discount_amount %}
+                    <div><span>{{ sale.discount_type|replace('_', ' ')|title }} Discount</span><strong>-{{ sale.discount_amount|php }}</strong></div>
+                {% endif %}
+                <div><span>VAT</span><strong>{{ sale.tax|php }}</strong></div>
+                <div class="grand-total"><span>Total</span><strong>{{ sale.total|php }}</strong></div>
+            </div>
+
+            <footer class="receipt-footer">
+                <a href="{{ url_for('pos') }}" class="ghost-link">Back to POS</a>
+                {% if current_user and current_user.role == 'owner' %}
+                    <a href="{{ url_for('owner_dashboard') }}" class="ghost-link">Owner</a>
+                {% endif %}
+                {% if current_user and current_user.role in ['owner', 'admin'] %}
+                    <a href="{{ url_for('inventory_dashboard') }}" class="open-inventory-link">Open Inventory</a>
+                    <a href="{{ url_for('admin_dashboard') }}" class="primary-button">Open Admin</a>
+                {% endif %}
+                {% if settings.cash_drawer_enabled == '1' %}
+                    <form method="post" action="{{ url_for('open_cash_drawer_hook') }}" class="inline-form">
+                        <input type="hidden" name="return_to" value="{{ url_for('receipt', sale_id=sale.id) }}">
+                        <button type="submit" class="ghost-link">Log cash drawer open</button>
+                    </form>
+                {% endif %}
+            </footer>
+        </section>
+    </main>
+
+    <script>
+        const printReceiptButton = document.getElementById('print-receipt-button');
+
+        if (printReceiptButton) {
+            printReceiptButton.addEventListener('click', () => {
+                window.print();
+            });
+        }
+
+        {% if settings.auto_print_receipt == '1' %}
+            window.addEventListener('load', () => {
+                window.print();
+            });
+        {% endif %}
+    </script>
+</body>
+</html>

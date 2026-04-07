@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ business_name }} POS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="aurora-body">
+    <main class="app-shell pos-shell">
+        <section class="hero-panel">
+            <div class="hero-copy">
+                <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo">
+                <p class="eyebrow">Philippine SME POS</p>
+                <h1>{{ business_name }}</h1>
+                <p class="hero-text">A front-counter POS designed for cakes, pastries, and Pick-a Pika service with stronger inventory visibility for fast-moving small businesses.</p>
+                <div class="system-access-links">
+                    <span class="system-pill">{{ current_user.full_name }} · {{ current_user.role|title }}</span>
+                    {% if current_user.role == 'owner' %}<a href="{{ url_for('owner_dashboard') }}" class="ghost-link">Owner</a>{% endif %}
+                    <a href="{{ url_for('logout') }}" class="ghost-link">Logout</a>
+                </div>
+            </div>
+            <div class="hero-highlight">
+                <p>Top basket snapshot</p>
+                <strong>{{ highlighted_total|php }}</strong>
+                <span>VAT rate {{ '%.0f'|format(vat_rate * 100) }}%</span>
+            </div>
+        </section>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <section class="flash-stack">
+                    {% for category, message in messages %}
+                        <article class="flash-card {{ category }}">{{ message }}</article>
+                    {% endfor %}
+                </section>
+            {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('checkout') }}" method="post" class="cashier-form" data-vat-rate="{{ vat_rate }}">
+            <section class="workspace-grid cashier-grid">
+                <section class="catalog-panel cashier-stage">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">Cashier</p>
+                            <h2>Touch to add products</h2>
+                        </div>
+                        <div class="system-access-links">
+                            <span class="system-pill">POS active</span>
+                            {% if current_user.role in ['owner', 'admin'] %}
+                                <a href="{{ url_for('admin_dashboard') }}" class="open-admin-link">Open Admin</a>
+                                <a href="{{ url_for('inventory_dashboard') }}" class="open-inventory-link">Open Inventory</a>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="cashier-toolbar">
+                        <div class="inventory-callout compact-callout">
+                            <p class="eyebrow">Inventory watch</p>
+                            <h3>{{ low_stock_count }} low-stock item{% if low_stock_count != 1 %}s{% endif %}</h3>
+                        </div>
+
+                        <div class="upcoming-card compact-upcoming">
+                            <p class="eyebrow">Upcoming products</p>
+                            {% for product in upcoming_products %}
+                                <p>{{ product.name }} <span>{{ product.category_name }}</span></p>
+                            {% else %}
+                                <p>No upcoming products listed yet.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <nav class="category-tabs" id="category-tabs">
+                        <button type="button" class="category-tab active" data-category="all">All</button>
+                        {% for category in product_categories %}
+                            <button type="button" class="category-tab" data-category="{{ category.name }}">{{ category.name }}</button>
+                        {% endfor %}
+                    </nav>
+
+                    <div class="product-grid cashier-product-grid" id="product-grid">
+                        {% for category in product_categories %}
+                            {% for product in category.products %}
+                                {% set product_variants = variants_map.get(product.id, []) %}
+                                {% set img_url = get_product_image_url(product.image_path, product.category_name) %}
+                                <article class="product-card cashier-product-card {% if product.stock == 0 and not product_variants %}sold-out{% elif product.stock <= product.reorder_level and not product_variants %}low-stock{% endif %}" data-category="{{ product.category_name }}">
+                                    {% if product_variants %}
+                                        <div class="product-card-image">
+                                            <img src="{{ url_for('static', filename=img_url) }}" alt="{{ product.name }}" loading="lazy">
+                                            <span class="card-category-badge">{{ product.category_name }}</span>
+                                        </div>
+                                        <div class="product-card-info">
+                                            <strong class="product-card-name">{{ product.name }}</strong>
+                                            <span class="product-card-sku">{{ product.sku }}</span>
+                                            <span class="tile-hint">Select variant below</span>
+                                        </div>
+
+                                        <div class="variant-list" data-product-id="{{ product.id }}">
+                                            {% for variant in product_variants %}
+                                                <div class="variant-row {% if variant.stock == 0 %}sold-out{% elif variant.stock <= variant.reorder_level %}low-stock{% endif %}">
+                                                    <button
+                                                        type="button"
+                                                        class="variant-tile"
+                                                        data-product-id="{{ product.id }}"
+                                                        data-variant-id="{{ variant.id }}"
+                                                        data-variant-name="{{ variant.name }}"
+                                                        data-variant-price="{{ variant.price }}"
+                                                        data-variant-stock="{{ variant.stock }}"
+                                                        {% if variant.stock == 0 %}disabled{% endif %}
+                                                    >
+                                                        <span>{{ variant.name }}</span>
+                                                        <span class="price-tag">{{ variant.price|php }}</span>
+                                                        <span class="tile-hint">{% if variant.stock == 0 %}Sold out{% else %}{{ variant.stock }} on hand{% endif %}</span>
+                                                    </button>
+
+                                                    <div class="tile-controls variant-controls">
+                                                        <button type="button" class="qty-button" data-action="decrease" data-product-id="{{ product.id }}" data-variant-id="{{ variant.id }}" {% if variant.stock == 0 %}disabled{% endif %}>−</button>
+                                                        <div class="qty-display-shell">
+                                                            <span class="qty-label">Qty</span>
+                                                            <strong class="qty-display" data-qty-display="v{{ variant.id }}">0</strong>
+                                                        </div>
+                                                        <button type="button" class="qty-button" data-action="increase" data-product-id="{{ product.id }}" data-variant-id="{{ variant.id }}" {% if variant.stock == 0 %}disabled{% endif %}>+</button>
+                                                    </div>
+
+                                                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                                                    <input type="hidden" name="variant_id" value="{{ variant.id }}">
+                                                    <input type="hidden" name="quantity" value="0" class="quantity-input" data-product-id="{{ product.id }}" data-variant-id="{{ variant.id }}">
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <button
+                                            type="button"
+                                            class="product-tile"
+                                            data-product-id="{{ product.id }}"
+                                            data-product-name="{{ product.name }}"
+                                            data-product-price="{{ product.price }}"
+                                            data-product-stock="{{ product.stock }}"
+                                            {% if product.stock == 0 %}disabled{% endif %}
+                                        >
+                                            <div class="product-card-image">
+                                                <img src="{{ url_for('static', filename=img_url) }}" alt="{{ product.name }}" loading="lazy">
+                                                <span class="card-category-badge">{{ product.category_name }}</span>
+                                            </div>
+                                            <div class="product-card-info">
+                                                <strong class="product-card-name">{{ product.name }}</strong>
+                                                <span class="product-card-sku">{{ product.sku }}</span>
+                                                <span class="product-card-price">{{ product.price|php }}</span>
+                                                <span class="tile-hint">{% if product.stock == 0 %}Sold out{% else %}Tap to add{% endif %}</span>
+                                            </div>
+                                        </button>
+
+                                        <div class="tile-controls">
+                                            <button type="button" class="qty-button" data-action="decrease" data-product-id="{{ product.id }}" {% if product.stock == 0 %}disabled{% endif %}>−</button>
+                                            <div class="qty-display-shell">
+                                                <span class="qty-label">Qty</span>
+                                                <strong class="qty-display" data-qty-display="{{ product.id }}">0</strong>
+                                            </div>
+                                            <button type="button" class="qty-button" data-action="increase" data-product-id="{{ product.id }}" {% if product.stock == 0 %}disabled{% endif %}>+</button>
+                                        </div>
+
+                                        <p class="stock-note">
+                                            {{ product.stock }} {{ product.unit_name|lower }}{% if product.stock != 1 %}s{% endif %} on hand
+                                            {% if product.stock <= product.reorder_level %}
+                                                <strong class="inventory-flag">Reorder soon</strong>
+                                            {% endif %}
+                                        </p>
+
+                                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                                        <input type="hidden" name="variant_id" value="">
+                                        <input type="hidden" name="quantity" value="0" class="quantity-input" data-product-id="{{ product.id }}">
+                                    {% endif %}
+                                </article>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <aside class="checkout-panel cashier-sidebar">
+                    <div class="section-heading compact">
+                        <div>
+                            <p class="eyebrow">Sales flow</p>
+                            <h2>Current order</h2>
+                        </div>
+                    </div>
+
+                    <div class="cashier-cart">
+                        <div class="cart-list" id="cart-list">
+                            <p class="empty-cart-message">Tap a product tile to start the order.</p>
+                        </div>
+
+                        <div class="totals-card cashier-totals">
+                            <div><span>Subtotal</span><strong id="subtotal-display">{{ 0|php }}</strong></div>
+                            <div><span>VAT</span><strong id="vat-display">{{ 0|php }}</strong></div>
+                            <div class="grand-total"><span>Total</span><strong id="total-display">{{ 0|php }}</strong></div>
+                        </div>
+
+                        <label>
+                            Payment method
+                            <select name="payment_method">
+                                <option value="Card">Card</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Mobile Wallet">Mobile Wallet</option>
+                                <option value="GCash">GCash</option>
+                            </select>
+                        </label>
+
+                        <label>
+                            Discount
+                            <select name="discount_type" id="discount-type-select">
+                                <option value="none">No discount</option>
+                                <option value="senior">Senior</option>
+                                <option value="pwd">PWD</option>
+                                <option value="custom">Custom %</option>
+                            </select>
+                        </label>
+
+                        <label>
+                            Custom discount %
+                            <input type="number" min="0" max="100" step="0.01" name="custom_discount_rate" id="custom-discount-rate" value="0" disabled>
+                        </label>
+
+                        <label>
+                            Discount note
+                            <input type="text" name="discount_note" placeholder="Senior ID, PWD card, manager note">
+                        </label>
+
+                        <div class="cashier-actions">
+                            <button type="button" class="ghost-link cash-action" id="clear-cart-button">Clear order</button>
+                            <button type="submit" class="primary-button cash-action" id="checkout-button" disabled>Create receipt</button>
+                        </div>
+                    </div>
+                </aside>
+            </section>
+        </form>
+    </main>
+
+    <script>
+        const cashierForm = document.querySelector('.cashier-form');
+
+        if (cashierForm) {
+            const vatRate = Number(cashierForm.dataset.vatRate || 0);
+            const formatter = new Intl.NumberFormat('en-PH', {
+                style: 'currency',
+                currency: 'PHP',
+            });
+
+            const quantityInputs = Array.from(cashierForm.querySelectorAll('.quantity-input'));
+            const productTiles = Array.from(cashierForm.querySelectorAll('.product-tile'));
+            const variantTiles = Array.from(cashierForm.querySelectorAll('.variant-tile'));
+            const qtyDisplays = new Map(
+                Array.from(cashierForm.querySelectorAll('[data-qty-display]')).map((node) => [node.dataset.qtyDisplay, node])
+            );
+            const cartList = document.getElementById('cart-list');
+            const subtotalDisplay = document.getElementById('subtotal-display');
+            const vatDisplay = document.getElementById('vat-display');
+            const totalDisplay = document.getElementById('total-display');
+            const checkoutButton = document.getElementById('checkout-button');
+            const clearCartButton = document.getElementById('clear-cart-button');
+            const discountTypeSelect = document.getElementById('discount-type-select');
+            const customDiscountRateInput = document.getElementById('custom-discount-rate');
+
+            const catalog = new Map(
+                productTiles.map((tile) => [tile.dataset.productId, {
+                    id: tile.dataset.productId,
+                    name: tile.dataset.productName,
+                    price: Number(tile.dataset.productPrice),
+                    stock: Number(tile.dataset.productStock),
+                }])
+            );
+
+            const variantCatalog = new Map(
+                variantTiles.map((tile) => [tile.dataset.variantId, {
+                    id: tile.dataset.variantId,
+                    productId: tile.dataset.productId,
+                    name: tile.dataset.variantName,
+                    price: Number(tile.dataset.variantPrice),
+                    stock: Number(tile.dataset.variantStock),
+                }])
+            );
+
+            const getQuantityInput = (productId, variantId) => {
+                if (variantId) {
+                    return quantityInputs.find((input) => input.dataset.variantId === variantId);
+                }
+                return quantityInputs.find((input) => input.dataset.productId === productId && !input.dataset.variantId);
+            };
+
+            const getDisplayKey = (productId, variantId) => {
+                return variantId ? `v${variantId}` : productId;
+            };
+
+            const setQuantity = (productId, variantId, nextValue) => {
+                const quantityInput = getQuantityInput(productId, variantId);
+                const displayKey = getDisplayKey(productId, variantId);
+                const display = qtyDisplays.get(displayKey);
+                if (!quantityInput || !display) return;
+
+                let maxStock;
+                if (variantId) {
+                    const variant = variantCatalog.get(variantId);
+                    maxStock = variant ? variant.stock : 0;
+                } else {
+                    const product = catalog.get(productId);
+                    maxStock = product ? product.stock : 0;
+                }
+
+                const clampedValue = Math.max(0, Math.min(maxStock, nextValue));
+                quantityInput.value = String(clampedValue);
+                display.textContent = String(clampedValue);
+                renderCart();
+            };
+
+            const renderCart = () => {
+                const lines = quantityInputs
+                    .map((input) => {
+                        const quantity = Number(input.value || 0);
+                        if (quantity <= 0) return null;
+
+                        const variantId = input.dataset.variantId || null;
+                        if (variantId) {
+                            const variant = variantCatalog.get(variantId);
+                            if (!variant) return null;
+                            return {
+                                productId: variant.productId,
+                                variantId: variantId,
+                                name: variant.name,
+                                price: variant.price,
+                                quantity,
+                                lineTotal: variant.price * quantity,
+                            };
+                        }
+
+                        const product = catalog.get(input.dataset.productId);
+                        if (!product) return null;
+                        return {
+                            productId: product.id,
+                            variantId: null,
+                            name: product.name,
+                            price: product.price,
+                            quantity,
+                            lineTotal: product.price * quantity,
+                        };
+                    })
+                    .filter(Boolean);
+
+                const subtotal = lines.reduce((sum, line) => sum + line.lineTotal, 0);
+                const discountType = discountTypeSelect.value;
+                const presetDiscounts = { none: 0, senior: 0.20, pwd: 0.20 };
+                const discountRate = discountType === 'custom'
+                    ? Math.max(0, Math.min(100, Number(customDiscountRateInput.value || 0))) / 100
+                    : (presetDiscounts[discountType] || 0);
+                const discountAmount = subtotal * discountRate;
+                const discountedSubtotal = subtotal - discountAmount;
+                const vat = discountedSubtotal * vatRate;
+                const total = discountedSubtotal + vat;
+
+                subtotalDisplay.textContent = formatter.format(subtotal);
+                vatDisplay.textContent = `${formatter.format(vat)}${discountAmount > 0 ? ` after ${formatter.format(discountAmount)} discount` : ''}`;
+                totalDisplay.textContent = formatter.format(total);
+                checkoutButton.disabled = lines.length === 0;
+
+                if (lines.length === 0) {
+                    cartList.innerHTML = '<p class="empty-cart-message">Tap a product tile to start the order.</p>';
+                    return;
+                }
+
+                cartList.innerHTML = lines.map((line) => `
+                    <article class="cart-line">
+                        <div>
+                            <strong>${line.name}</strong>
+                            <p>${formatter.format(line.price)} each</p>
+                        </div>
+                        <div class="cart-line-controls">
+                            <button type="button" class="mini-qty-button" data-action="decrease" data-product-id="${line.productId}" ${line.variantId ? `data-variant-id="${line.variantId}"` : ''}>−</button>
+                            <span>${line.quantity}</span>
+                            <button type="button" class="mini-qty-button" data-action="increase" data-product-id="${line.productId}" ${line.variantId ? `data-variant-id="${line.variantId}"` : ''}>+</button>
+                        </div>
+                        <strong>${formatter.format(line.lineTotal)}</strong>
+                    </article>
+                `).join('');
+            };
+
+            productTiles.forEach((tile) => {
+                tile.addEventListener('click', () => {
+                    const quantityInput = getQuantityInput(tile.dataset.productId, null);
+                    setQuantity(tile.dataset.productId, null, Number(quantityInput.value || 0) + 1);
+                });
+            });
+
+            variantTiles.forEach((tile) => {
+                tile.addEventListener('click', () => {
+                    const quantityInput = getQuantityInput(tile.dataset.productId, tile.dataset.variantId);
+                    setQuantity(tile.dataset.productId, tile.dataset.variantId, Number(quantityInput.value || 0) + 1);
+                });
+            });
+
+            cashierForm.addEventListener('click', (event) => {
+                const control = event.target.closest('[data-action][data-product-id]');
+                if (!control) {
+                    return;
+                }
+
+                const variantId = control.dataset.variantId || null;
+                const quantityInput = getQuantityInput(control.dataset.productId, variantId);
+                const currentQuantity = Number(quantityInput.value || 0);
+                const direction = control.dataset.action === 'increase' ? 1 : -1;
+                setQuantity(control.dataset.productId, variantId, currentQuantity + direction);
+            });
+
+            clearCartButton.addEventListener('click', () => {
+                quantityInputs.forEach((input) => {
+                    const variantId = input.dataset.variantId || null;
+                    setQuantity(input.dataset.productId, variantId, 0);
+                });
+            });
+
+            discountTypeSelect.addEventListener('change', () => {
+                const isCustom = discountTypeSelect.value === 'custom';
+                customDiscountRateInput.disabled = !isCustom;
+                if (!isCustom) {
+                    customDiscountRateInput.value = '0';
+                }
+                renderCart();
+            });
+
+            customDiscountRateInput.addEventListener('input', renderCart);
+
+            renderCart();
+        }
+
+        const categoryTabs = document.querySelectorAll('.category-tab');
+        const productCards = document.querySelectorAll('.cashier-product-card[data-category]');
+
+        categoryTabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                categoryTabs.forEach((t) => t.classList.remove('active'));
+                tab.classList.add('active');
+                const selected = tab.dataset.category;
+                productCards.forEach((card) => {
+                    card.style.display = (selected === 'all' || card.dataset.category === selected) ? '' : 'none';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ business_name }} Owner Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="admin-body">
+    <main class="dashboard-shell">
+        <aside class="dashboard-sidebar">
+            <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo small">
+            <p class="eyebrow">Owner</p>
+            <h1>{{ business_name }}</h1>
+            <nav class="admin-nav">
+                <a href="#oversight" class="ghost-link">Oversight</a>
+                <a href="#alerts" class="ghost-link">Alerts</a>
+                <a href="#backups" class="ghost-link">Backups</a>
+                <a href="#settings" class="ghost-link">Hardware Settings</a>
+                <a href="#audit" class="ghost-link">Audit Trail</a>
+            </nav>
+            <div class="side-launch-links">
+                <a href="{{ url_for('admin_dashboard') }}" class="open-admin-link side-launch-link">Open Admin</a>
+                <a href="{{ url_for('inventory_dashboard') }}" class="open-inventory-link side-launch-link">Open Inventory</a>
+                <a href="{{ url_for('pos') }}" class="pos-launch-link side-launch-link">Go to POS</a>
+                <a href="{{ url_for('logout') }}" class="ghost-link side-launch-link">Logout</a>
+            </div>
+            <p class="sidebar-note">Owner view focuses on controls that affect the whole business: backup, restore, hardware preferences, and audit visibility.</p>
+        </aside>
+
+        <section class="dashboard-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <section class="flash-stack">
+                        {% for category, message in messages %}
+                            <article class="flash-card {{ category }}">{{ message }}</article>
+                        {% endfor %}
+                    </section>
+                {% endif %}
+            {% endwith %}
+
+            <div class="metrics-grid" id="oversight">
+                <article class="metric-card">
+                    <span>Revenue</span>
+                    <strong>{{ metrics.revenue|php }}</strong>
+                </article>
+                <article class="metric-card">
+                    <span>Receipts</span>
+                    <strong>{{ metrics.receipt_count }}</strong>
+                </article>
+                <article class="metric-card warning">
+                    <span>Low stock items</span>
+                    <strong>{{ metrics.low_stock_count }}</strong>
+                </article>
+                <article class="metric-card">
+                    <span>Inventory cost</span>
+                    <strong>{{ metrics.inventory_cost_value|php }}</strong>
+                </article>
+            </div>
+
+            <section class="dashboard-panel split admin-ops-panel">
+                <article>
+                    <p class="eyebrow">Attention items</p>
+                    <h2>Low-stock watchlist</h2>
+                    <div class="table-shell compact-table admin-table-wrap">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Category</th>
+                                    <th>Stock</th>
+                                    <th>Reorder</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in inventory_watchlist %}
+                                    <tr>
+                                        <td>{{ item.name }}</td>
+                                        <td>{{ item.category_name }}</td>
+                                        <td>{{ item.stock }}</td>
+                                        <td>{{ item.reorder_level }}</td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4">No low-stock items.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="stock-summary">
+                    <p class="eyebrow">Current month</p>
+                    <h2>{{ reports.summary.month_revenue|php }}</h2>
+                    <p>{{ reports.summary.month_receipts }} receipt(s) completed this month. Use the audit and backup tools below before major changes.</p>
+                </article>
+            </section>
+
+            <section class="dashboard-panel" id="alerts">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Alerts</p>
+                        <h2>Owner notifications</h2>
+                    </div>
+                </div>
+                <div class="table-shell compact-table admin-table-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Severity</th>
+                                <th>Alert</th>
+                                <th>Message</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alert in owner_alerts %}
+                                <tr>
+                                    <td>{{ alert.created_at }}</td>
+                                    <td>{{ alert.severity|title }}</td>
+                                    <td>{{ alert.title }}</td>
+                                    <td>{{ alert.message }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="4">No owner alerts yet.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="dashboard-panel" id="backups">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Backups</p>
+                        <h2>Backup and restore</h2>
+                    </div>
+                    <form method="post" action="{{ url_for('create_backup') }}">
+                        <button type="submit" class="primary-button">Create backup now</button>
+                    </form>
+                </div>
+                <div class="table-shell admin-table-wrap compact-table">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Backup</th>
+                                <th>Modified</th>
+                                <th>Size</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for backup in backups %}
+                                <tr>
+                                    <td>{{ backup.name }}</td>
+                                    <td>{{ backup.modified }}</td>
+                                    <td>{{ backup.size }}</td>
+                                    <td>
+                                        <a href="{{ url_for('download_backup', backup_name=backup.name) }}" class="ghost-link small-action">Download</a>
+                                        <form method="post" action="{{ url_for('restore_backup') }}" class="inline-form danger-form">
+                                            <input type="hidden" name="backup_name" value="{{ backup.name }}">
+                                            <button type="submit" class="ghost-link small-action danger-action">Restore</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="4">No backups available yet.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="dashboard-panel" id="settings">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Hardware</p>
+                        <h2>Receipt and drawer settings</h2>
+                    </div>
+                </div>
+                <form method="post" action="{{ url_for('save_settings') }}" class="settings-grid">
+                    <label class="toggle-row">
+                        <input type="checkbox" name="auto_print_receipt" value="1" {% if settings.auto_print_receipt == '1' %}checked{% endif %}>
+                        <span>Auto-open print dialog after checkout</span>
+                    </label>
+                    <label class="toggle-row">
+                        <input type="checkbox" name="cash_drawer_enabled" value="1" {% if settings.cash_drawer_enabled == '1' %}checked{% endif %}>
+                        <span>Show cash drawer action on receipt screen</span>
+                    </label>
+                    <label>
+                        Printer mode
+                        <select name="printer_mode">
+                            <option value="browser" {% if settings.printer_mode == 'browser' %}selected{% endif %}>Browser print</option>
+                            <option value="bridge" {% if settings.printer_mode == 'bridge' %}selected{% endif %}>Local bridge / ESC-POS ready</option>
+                        </select>
+                    </label>
+                    <label>
+                        Drawer note
+                        <input type="text" name="drawer_open_note" value="{{ settings.drawer_open_note }}">
+                    </label>
+                    <label class="toggle-row">
+                        <input type="checkbox" name="alert_low_stock_email" value="1" {% if settings.alert_low_stock_email == '1' %}checked{% endif %}>
+                        <span>Email owner on low stock</span>
+                    </label>
+                    <label class="toggle-row">
+                        <input type="checkbox" name="alert_void_refund_email" value="1" {% if settings.alert_void_refund_email == '1' %}checked{% endif %}>
+                        <span>Email owner on voids and refunds</span>
+                    </label>
+                    <label class="toggle-row">
+                        <input type="checkbox" name="alert_variance_email" value="1" {% if settings.alert_variance_email == '1' %}checked{% endif %}>
+                        <span>Email owner on suspicious inventory adjustments</span>
+                    </label>
+                    <button type="submit" class="primary-button">Save settings</button>
+                </form>
+            </section>
+
+            <section class="dashboard-panel" id="audit">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Audit</p>
+                        <h2>Recent activity trail</h2>
+                    </div>
+                </div>
+                <div class="table-shell compact-table admin-table-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Actor</th>
+                                <th>Action</th>
+                                <th>Entity</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in audit_logs %}
+                                <tr>
+                                    <td>{{ log.created_at }}</td>
+                                    <td>{{ log.actor_name }} · {{ log.actor_role|title }}</td>
+                                    <td>{{ log.action|replace('_', ' ')|title }}</td>
+                                    <td>{{ log.entity_type|replace('_', ' ')|title }}{% if log.entity_id %} #{{ log.entity_id }}{% endif %}</td>
+                                    <td>{{ log.details }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="5">No audit entries yet.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </section>
+    </main>
+</body>
+</html>

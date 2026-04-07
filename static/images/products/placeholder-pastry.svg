@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <rect width="200" height="200" rx="24" fill="#FFF8EE"/>
+  <path d="M60 120 Q100 55 140 120" fill="#E8C9A0"/>
+  <rect x="55" y="115" width="90" height="30" rx="10" fill="#D4956B"/>
+  <path d="M70 125 Q85 118 100 125 Q115 118 130 125" stroke="#F5D6B0" stroke-width="3" fill="none"/>
+  <circle cx="85" cy="100" r="3" fill="#8B4513"/>
+  <circle cx="100" cy="90" r="3" fill="#8B4513"/>
+  <circle cx="115" cy="100" r="3" fill="#8B4513"/>
+  <text x="100" y="175" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#8B6914" font-weight="600">Pastry</text>
+</svg>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ business_name }} Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="admin-body">
+    <main class="login-shell">
+        <section class="login-card">
+            <img src="{{ url_for('static', filename=logo_path) }}" alt="{{ business_name }} logo" class="brand-logo">
+            <p class="eyebrow">Secure access</p>
+            <h1>{{ business_name }}</h1>
+            <p class="hero-text">Sign in by username and PIN to use the POS, Admin, Inventory, or Owner workspace.</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <section class="flash-stack">
+                        {% for category, message in messages %}
+                            <article class="flash-card {{ category }}">{{ message }}</article>
+                        {% endfor %}
+                    </section>
+                {% endif %}
+            {% endwith %}
+
+            <form method="post" class="login-form">
+                <input type="hidden" name="next" value="{{ next }}">
+                <label>
+                    Username
+                    <input type="text" name="username" placeholder="owner, admin, or cashier" required>
+                </label>
+                <label>
+                    PIN
+                    <input type="password" name="pin" placeholder="Enter PIN" required>
+                </label>
+                <button type="submit" class="primary-button">Sign in</button>
+            </form>
+
+            <div class="login-hint-grid">
+                <article class="metric-card">
+                    <span>Owner</span>
+                    <strong>owner</strong>
+                    <p class="panel-note">PIN: owner123</p>
+                </article>
+                <article class="metric-card">
+                    <span>Admin</span>
+                    <strong>admin</strong>
+                    <p class="panel-note">PIN: admin123</p>
+                </article>
+                <article class="metric-card">
+                    <span>Cashier</span>
+                    <strong>cashier</strong>
+                    <p class="panel-note">PIN: cashier123</p>
+                </article>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
