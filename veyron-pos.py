@@ -33,7 +33,7 @@ BACKUP_DIR = Path(os.getenv("BACKUP_DIR", str(BASE_DIR / "backups")))
 DATABASE_ENGINE = "postgres" if DATABASE_URL and not DATABASE_URL.startswith("sqlite") else "sqlite"
 PUBLIC_LOGO = BASE_DIR / "static" / "public" / "logo.png"
 FALLBACK_LOGO = "images/logo.png"
-PRODUCT_IMAGES_DIR = BASE_DIR / "static" / "images" / "products"
+PRODUCT_IMAGES_DIR = Path(os.getenv("PRODUCT_IMAGES_DIR", str(BASE_DIR / "static" / "images" / "products")))
 ALLOWED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
 PLACEHOLDER_MAP = {
     "cakes": "images/products/placeholder-cake.svg",

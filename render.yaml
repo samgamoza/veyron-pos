@@ -2,9 +2,14 @@ services:
   - type: web
     name: veyron-pos
     env: python
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn wsgi:app
     healthCheckPath: /healthz
+    disk:
+      name: veyron-data
+      mountPath: /data
+      sizeGB: 1
     envVars:
       - key: APP_ENV
         value: production
@@ -12,10 +17,12 @@ services:
         value: "0"
       - key: SECRET_KEY
         generateValue: true
-      - key: DATABASE_URL
-        sync: false
+      - key: SQLITE_DATABASE_PATH
+        value: /data/pos.db
+      - key: PRODUCT_IMAGES_DIR
+        value: /data/images/products
       - key: BACKUP_DIR
-        value: /opt/render/project/src/backups
+        value: /data/backups
       - key: ALERT_TO_EMAIL
         sync: false
       - key: ALERT_FROM_EMAIL
